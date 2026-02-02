@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nostr Community Hub</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#7c3aed" />
+
+  <!-- Nostr Tools -->
+  <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js">  async function searchCommunities(){
+    const term=document.getElementById('searchTerm').value.toLowerCase();
+    const out=document.getElementById('searchResults');
+    out.innerHTML='Buscando comunidades...';
+    const events=await new NostrTools.SimplePool().list(relays,[{kinds:[34550],limit:40}]);
+    out.innerHTML='';
+    events.filter(e=>e.content.toLowerCase().includes(term)).forEach(e=>{
+      const d=document.createElement('div');
+      d.className='post';
+      d.innerText=e.content;
+      out.appendChild(d);
+    });
+  }
+
+  async function deletePost(eventId){
+    if(!window.nostr) return alert('Use extensão Nostr');
+    const ev={kind:5,content:'',tags:[['e',eventId]],created_at:Math.floor(Date.now()/1000)};
+    const signed=await window.nostr.signEvent(ev);
+    new NostrTools.SimplePool().publish(relays,signed);
+    loadFeed();
+  }
+
+  async function searchCommunities(){
+    const term=document.getElementById('searchTerm').value.toLowerCase();
+    const out=document.getElementById('searchResults');
+    out.innerHTML='Buscando comunidades...';
+
+    const events=await new NostrTools.SimplePool().list(relays,[{kinds:[34550],limit:40}]);
+    out.innerHTML='';
+
+    events
+      .filter(e=>e.content.toLowerCase().includes(term))
+      .forEach(e=>{
+        const data=JSON.parse(e.content||'{}');
+        const box=document.createElement('div');
+        box.className='post';
+        box.innerHTML=`<strong>${data.name||'Comunidade'}</strong><br><small>${data.about||''}</small>`;
+
+        const btn=document.createElement('button');
+        btn.style.marginTop='.5rem';
+        btn.innerText='Entrar na comunidade';
+        btn.onclick=()=>joinCommunity(e.pubkey,e.id);
+
+        box.appendChild(btn);
+        out.appendChild(box);
+      });
+  }
+
+  async function joinCommunity(communityPubkey,communityEvent){
+    if(!window.nostr) return alert('Use uma extensão Nostr');
+
+    const ev={
+      kind:30001,
+      content:'',
+      tags:[
+        ['a',`34550:${communityPubkey}:community`],
+        ['p',communityPubkey]
+      ],
+      created_at:Math.floor(Date.now()/1000)
+    };
+
+    const signed=await window.nostr.signEvent(ev);
+    new NostrTools.SimplePool().publish(relays,signed);
+    alert('Você entrou na comunidade ⚡');
+  }
+
+</script>
+
+  <style>
+    :root {
+      --bg: #0b0b11;
+      --card: #151520;
+      --accent: #7c3aed;
+      --accent-2: #22d3ee;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, sans-serif;
+      background: radial-gradient(circle at top, #1e1b4b, var(--bg));
+      color: var(--text);
+    }
+
+    header {
+      padding: 2.5rem 1.5rem 3rem;
+      text-align: center;
+    }
+
+    header h1 {
+      font-size: 2.2rem;
+      margin: 0;
+    }
+
+    header p {
+      color: var(--muted);
+      max-width: 600px;
+      margin: 0.8rem auto 0;
+    }
+
+    main {
+      max-width: 1200px;
+      margin: -2rem auto 0;
+      padding: 1rem;
+      display: grid;
+      gap: 1.2rem;
+    }
+
+    .card {
+      background: linear-gradient(180deg, #1a1a2e, var(--card));
+      border-radius: var(--radius);
+      padding: 1.3rem;
+      box-shadow: 0 20px 40px rgba(0,0,0,.35);
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: .4rem;
+    }
+
+    input, textarea, button {
+      width: 100%;
+      border-radius: 14px;
+      border: none;
+      padding: .8rem;
+      background: #0f172a;
+      color: var(--text);
+      margin-top: .5rem;
+      font-size: .95rem;
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: .9rem;
+    }
+
+    button:active { transform: scale(.98); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 1.2rem;
+    }
+
+    .feed .post {
+      padding: .9rem 0;
+      border-bottom: 1px solid #2a2a40;
+    }
+
+    .feed .post:last-child { border-bottom: none; }
+
+    footer {
+      text-align: center;
+      padding: 2rem 1rem;
+      color: var(--muted);
+      font-size: .85rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>⚡ Comunidade Nostr</h1>
+  <p>Um hub descentralizado para sua comunidade — compatível com Amethyst e instalável como app.</p>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>🔍 Pesquisar comunidades</h2>
+    <input id="searchTerm" placeholder="nome, npub ou palavra-chave" />
+    <button onclick="searchCommunities()">Pesquisar</button>
+    <div id="searchResults" style="margin-top:1rem"></div>
+  </section>
+
+  <section class="card">
+    <h2>🧩 Identidade da comunidade</h2>
+    <input id="communityName" placeholder="Nome da comunidade" />
+    <textarea id="communityAbout" rows="3" placeholder="Descrição" ></textarea>
+    <input id="communityImage" placeholder="URL do banner / avatar" />
+    <button onclick="publishCommunityMetadata()">Salvar identidade</button>
+  </section>
+
+</main>
+
+<footer>
+  ⚡ Nostr Community Hub • PWA • GitHub Pages
+</footer>
+
+<script>
+  function generateKeys(){
+    const sk = NostrTools.generatePrivateKey();
+    const pk = NostrTools.getPublicKey(sk);
+    const npub = NostrTools.nip19.npubEncode(pk);
+    const nsec = NostrTools.nip19.nsecEncode(sk);
+    document.getElementById('npubOut').value = npub;
+    document.getElementById('nsecOut').value = nsec;
+    document.getElementById('keysBox').style.display = 'block';
+  }
+
+  function downloadKeys(){
+    const text = `Guarde em local seguro!
+
+npub:
+${npubOut.value}
+
+nsec (NÃO COMPARTILHE):
+${nsecOut.value}`;
+    const blob = new Blob([text], {type:'text/plain'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'nostr-keys.txt';
+    a.click();
+  }
+
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js');
+  }
+
+  const relays = [
+    'wss://relay.damus.io',
+    'wss://nostr.wine',
+    'wss://relay.snort.social'
+  ];
+
+  let pubkey;
+
+  function connect() {
+    try {
+      pubkey = NostrTools.nip19.decode(document.getElementById('npub').value).data;
+      document.getElementById('pubkeyStatus').innerText = 'Conectado ✔';
+      loadFeed();
+    } catch { alert('npub inválido'); }
+  }
+
+  async function publishPost() {
+    if (!window.nostr) return alert('Use uma extensão Nostr');
+    const event = { kind: 1, content: postContent.value, tags: [], created_at: Math.floor(Date.now()/1000) };
+    const signed = await window.nostr.signEvent(event);
+    new NostrTools.SimplePool().publish(relays, signed);
+    postContent.value = '';
+  }
+
+  async function publishCommunityMetadata() {
+    if (!window.nostr) return alert('Use uma extensão Nostr');
+    const event = {
+      kind: 34550,
+      content: JSON.stringify({ name: communityName.value, about: communityAbout.value, image: communityImage.value }),
+      tags: [['d','community']],
+      created_at: Math.floor(Date.now()/1000)
+    };
+    const signed = await window.nostr.signEvent(event);
+    new NostrTools.SimplePool().publish(relays, signed);
+  }
+
+  async function loadFeed() {
+    const feed = document.getElementById('feed');
+    feed.innerHTML = 'Carregando...';
+    const events = await new NostrTools.SimplePool().list(relays, [{ kinds:[1], authors:[pubkey], limit:15 }]);
+    feed.innerHTML = '';
+    events.sort((a,b)=>b.created_at-a.created_at).forEach(e=>{
+      const d=document.createElement('div'); d.className='post'; d.innerText=e.content; feed.appendChild(d);
+    });
+  }
+</script>
+
+</body>
+</html>
