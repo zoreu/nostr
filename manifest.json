@@ -1,6 +1,6 @@
 {
   "name": "Nostr Groups",
-  "short_name": "Groups",
+  "short_name": "Nostr Groups",
   "description": "Gerenciador de comunidades Nostr descentralizado",
   "start_url": "/nostr/",
   "scope": "/nostr/",
