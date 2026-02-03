@@ -74,7 +74,6 @@
             overflow: hidden;
         }
         
-        /* Utilitários de Visibilidade Mobile */
         .mobile-only { display: none !important; }
 
         @media (max-width: 700px) { 
@@ -86,7 +85,6 @@
             .desktop-only { display: none !important; }
             .mobile-only { display: inline-flex !important; }
             
-            /* Lógica de Troca de Visualização */
             main.view-chat aside { display: none; }
             main.view-chat section { display: flex; }
             main:not(.view-chat) aside { display: block; }
@@ -219,6 +217,10 @@
             display: flex; align-items: center; gap: 0.8rem;
             height: 60px;
         }
+        .chat-header-info {
+            flex: 1; display: flex; align-items: center; gap: 0.8rem; cursor: pointer;
+        }
+        .chat-header-info:hover { opacity: 0.8; }
         
         .chat-messages {
             flex: 1; overflow-y: auto; padding: 1rem;
@@ -229,7 +231,7 @@
         .msg {
             display: flex; flex-direction: column; max-width: 80%;
             animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            position: relative; /* Para posicionar o botão de delete */
+            position: relative;
         }
         @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
         
@@ -259,7 +261,6 @@
         }
         .msg-author { font-weight: 600; color: var(--cyan); cursor: pointer; }
         
-        /* Botão de Deletar Mensagem */
         .msg-delete {
             background: none; border: none; color: #ef4444; font-size: 0.8rem;
             cursor: pointer; opacity: 0.6; padding: 0 4px; margin-left: 5px;
@@ -367,14 +368,12 @@
                 Meus Grupos 
                 <div style="display:flex; gap:5px">
                     <button class="btn-secondary btn-small" onclick="loadMyGroups()">↻</button>
-                    <!-- CORREÇÃO: Botão para abrir explorador no mobile -->
                     <button class="btn-primary btn-small mobile-only" onclick="openMobileExplorer()">🔍</button>
                 </div>
             </h3>
             <div id="myGroups" class="list">
                 <div class="empty-state">
                     <p>Conecte-se para ver</p>
-                    <!-- CORREÇÃO: Botão no estado vazio para mobile -->
                     <button class="btn-primary btn-small mobile-only" style="margin-top:10px" onclick="openMobileExplorer()">Encontrar Grupos</button>
                 </div>
             </div>
@@ -384,11 +383,10 @@
     <section>
         <!-- Explorador / Tabs -->
         <div id="explorerView" class="card" style="height: 100%; border: none; box-shadow: none; display: flex; flex-direction: column;">
-            <!-- CORREÇÃO: Botão de voltar no cabeçalho do explorador para mobile -->
             <div class="chat-header mobile-only" style="margin-bottom: 10px; border-radius: var(--radius-sm); justify-content: space-between;">
                 <button class="btn-secondary btn-icon" onclick="closeMobileExplorer()">←</button>
                 <span style="font-weight:600">Explorar</span>
-                <div style="width:36px"></div> <!-- Spacer -->
+                <div style="width:36px"></div>
             </div>
 
             <div class="tabs">
@@ -424,10 +422,13 @@
             <div id="chatContainer">
                 <div class="chat-header">
                     <button class="btn-secondary btn-icon" onclick="closeChat()">←</button>
-                    <div class="group-icon" id="chatIcon" style="width: 36px; height: 36px;">#</div>
-                    <div class="group-details">
-                        <div class="group-name" id="chatName">Nome do Grupo</div>
-                        <div class="group-desc" id="chatStatus">Conectado</div>
+                    <!-- Header clicável para abrir detalhes -->
+                    <div class="chat-header-info" onclick="openChatDetails()">
+                        <div class="group-icon" id="chatIcon" style="width: 36px; height: 36px;">#</div>
+                        <div class="group-details">
+                            <div class="group-name" id="chatName">Nome do Grupo</div>
+                            <div class="group-desc" id="chatStatus">Conectado</div>
+                        </div>
                     </div>
                     <!-- Botão de Admin só aparece se for o dono -->
                     <button id="adminBtn" class="btn-secondary btn-icon hidden" onclick="openAdminModal()">⚙️</button>
@@ -633,6 +634,7 @@ const RELAY_URLS = [
 let publicGroupsCache = [];
 let userProfilesCache = {}; 
 let deletedIds = new Set(); 
+let myGroupTags = []; // Armazena tags atuais
 
 // ==========================================
 // FUNÇÕES DE REDE
@@ -735,7 +737,6 @@ async function loginWithNsec() {
         const privKey = NostrCrypto.bytesToHex(data);
         const pubKey = NostrCrypto.getPublicKey(privKey);
         user = { type: 'local', privKey, pubKey, npub: bech32Encode('npub', NostrCrypto.hexToBytes(pubKey)) };
-        // PERSISTÊNCIA DE SESSÃO
         localStorage.setItem('nostr_user', JSON.stringify(user));
         completeLogin();
         closeModal('loginModal');
@@ -747,7 +748,6 @@ async function loginExtension() {
     try {
         const pubKey = await window.nostr.getPublicKey();
         user = { type: 'ext', pubKey, npub: bech32Encode('npub', NostrCrypto.hexToBytes(pubKey)) };
-        // PERSISTÊNCIA DE SESSÃO
         localStorage.setItem('nostr_user', JSON.stringify(user));
         completeLogin();
     } catch { showAlert('Erro na extensão', 'error'); }
@@ -765,7 +765,7 @@ function completeLogin() {
 
 function logout() { 
     user = null;
-    localStorage.removeItem('nostr_user'); // LIMPA SESSÃO
+    localStorage.removeItem('nostr_user'); 
     location.reload(); 
 }
 
@@ -831,6 +831,7 @@ async function loadMyGroups() {
     await waitForRelays();
     
     subscribe({ kinds: [10004], authors: [user.pubKey], '#d': ['groups'], limit: 1 }, (event) => {
+        myGroupTags = event.tags; // SALVA TAGS ATUAIS
         container.innerHTML = ''; 
         const groupTags = event.tags.filter(t => t[0] === 'a');
         if (groupTags.length === 0) { container.innerHTML = '<div class="empty-state"><p>Conecte-se para ver</p><button class="btn-primary btn-small mobile-only" style="margin-top:10px" onclick="openMobileExplorer()">Encontrar Grupos</button></div>'; return; }
@@ -868,7 +869,6 @@ function renderGroupItem(event, container, isMyGroup = false) {
     container.appendChild(el);
 }
 
-// LÓGICA DE NAVEGAÇÃO MOBILE
 function openMobileExplorer() {
     document.getElementById('mainContainer').classList.add('view-chat');
     document.getElementById('chatView').classList.add('hidden');
@@ -879,7 +879,87 @@ function closeMobileExplorer() {
     document.getElementById('mainContainer').classList.remove('view-chat');
 }
 
-// LÓGICA DO CHAT
+// ==========================================
+// FUNÇÕES DE JOIN E LEAVE CORRIGIDAS
+// ==========================================
+
+// Helper para obter lista atualizada
+async function getGroupListEvent() {
+    return new Promise((resolve) => {
+        const subId = subscribe({ kinds: [10004], authors: [user.pubKey], '#d': ['groups'], limit: 1 }, (event) => {
+            unsubscribe(subId);
+            resolve(event);
+        });
+        setTimeout(() => { unsubscribe(subId); resolve(null); }, 2000);
+    });
+}
+
+async function joinGroup(hostPubkey, dTag) {
+    if (!user) return showAlert('Faça login', 'error');
+    
+    // 1. Obter lista atual para não sobrescrever
+    const existingEvent = await getGroupListEvent();
+    let tags = [['d', 'groups']];
+    
+    if (existingEvent) {
+        // Mantém todas as tags exceto 'd' (que readicionamos)
+        tags = existingEvent.tags.filter(t => t[0] !== 'd');
+        tags.unshift(['d', 'groups']);
+    }
+
+    const newTag = ['a', `34550:${hostPubkey}:${dTag}`];
+    
+    // Evita duplicatas
+    if (tags.some(t => t[0] === 'a' && t[1] === newTag[1])) {
+        return showAlert('Você já está neste grupo', 'warning');
+    }
+
+    tags.push(newTag);
+
+    const event = {
+        kind: 10004,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: tags,
+        content: ''
+    };
+
+    try {
+        await publishEvent(event);
+        showAlert('Entrou no grupo!', 'success');
+        loadMyGroups();
+    } catch (e) { showAlert('Erro ao entrar', 'error'); }
+}
+
+async function leaveGroup(hostPubkey, dTag) {
+    if (!confirm("Sair deste grupo?")) return;
+
+    const existingEvent = await getGroupListEvent();
+    if (!existingEvent) return;
+
+    const target = `34550:${hostPubkey}:${dTag}`;
+    const newTags = existingEvent.tags.filter(t => t[1] !== target);
+
+    const event = {
+        kind: 10004,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: newTags,
+        content: ''
+    };
+
+    try {
+        await publishEvent(event);
+        showAlert('Saiu do grupo', 'success');
+        closeChat(); 
+        closeModal('groupDetailModal');
+        // Limpa visualmente e recarrega
+        document.getElementById('myGroups').innerHTML = '';
+        setTimeout(loadMyGroups, 1000); 
+    } catch (e) { showAlert('Erro ao sair', 'error'); }
+}
+
+// LÓGICA DO CHAT E DETALHES
 function openChat(meta) {
     activeGroup = meta;
     deletedIds.clear(); 
@@ -904,6 +984,10 @@ function openChat(meta) {
         const list = document.getElementById('messageList');
         if(list.querySelector('.loading')) list.innerHTML = '';
     }, 1000);
+}
+
+function openChatDetails() {
+    if(activeGroup) showGroupDetails(activeGroup);
 }
 
 function closeChat() {
@@ -1090,27 +1174,22 @@ async function createGroup() {
     } catch (e) { showAlert('Erro ao criar: ' + e, 'error'); }
 }
 
-async function joinGroup(hostPubkey, dTag) {
-    if (!user) return showAlert('Faça login', 'error');
-    const event = {
-        kind: 10004,
-        created_at: Math.floor(Date.now() / 1000),
-        pubkey: user.pubKey,
-        tags: [['d', 'groups'], ['a', `34550:${hostPubkey}:${dTag}`]],
-        content: ''
-    };
-    try { await publishEvent(event); showAlert('Grupo salvo!', 'success'); loadMyGroups(); } 
-    catch (e) { showAlert('Erro ao salvar', 'error'); }
-}
-
+// CORREÇÃO: Função atualizada para exibir botão SAIR se já for membro
 function showGroupDetails(meta) {
+    const isMember = myGroupTags.some(t => t[0] === 'a' && t[1] === `34550:${meta.pubkey}:${meta.d}`);
+    
     document.getElementById('groupDetailContent').innerHTML = `
         <div style="text-align: center; margin-bottom: 1rem;">
             <div class="group-icon" style="width: 64px; height: 64px; margin: 0 auto 1rem; font-size: 2rem;">
                 ${meta.image ? `<img src="${meta.image}">` : '#'}
             </div>
             <h3>${meta.name || meta.d}</h3>
-            <p style="color: var(--muted); font-size: 0.9rem;">${meta.desc || ''}</p>
+            <p style="color: var(--muted); font-size: 0.9rem; margin-bottom: 1rem;">${meta.desc || ''}</p>
+            
+            ${isMember 
+                ? `<button class="btn-danger btn-full" onclick="leaveGroup('${meta.pubkey}', '${meta.d}')">Sair do Grupo</button>`
+                : `<button class="btn-primary btn-full" onclick="joinGroup('${meta.pubkey}', '${meta.d}')">Entrar no Grupo</button>`
+            }
         </div>
     `;
     showModal('groupDetailModal');
