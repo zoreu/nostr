@@ -1,294 +1,1139 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nostr Community Hub</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nostr Groups • Web</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    
+    <!-- PWA Settings -->
+    <meta name="theme-color" content="#7c3aed">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <style>
+        :root {
+            --bg: #0b0b11;
+            --panel: #151520;
+            --panel-light: #1a1a2e;
+            --accent: #7c3aed;
+            --accent-light: #a855f7;
+            --cyan: #22d3ee;
+            --text: #e5e7eb;
+            --muted: #9ca3af;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --chat-bg: #0f0f16;
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg);
+            background-image: radial-gradient(circle at 50% 0%, #1e1b4b 0%, var(--bg) 60%);
+            color: var(--text);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        header {
+            text-align: center;
+            padding: 0.8rem;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.15);
+            background: rgba(11, 11, 17, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+            flex-shrink: 0;
+        }
+        
+        header h1 {
+            font-size: 1.1rem;
+            background: linear-gradient(135deg, var(--accent-light), var(--cyan));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        main {
+            flex: 1;
+            max-width: 900px;
+            width: 100%;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 260px 1fr;
+            gap: 1rem;
+            padding: 1rem;
+            overflow: hidden;
+        }
+        
+        @media (max-width: 700px) { 
+            main { 
+                grid-template-columns: 1fr; 
+                padding: 0;
+                gap: 0;
+            }
+            .desktop-only { display: none !important; }
+            main.view-chat aside { display: none; }
+            main.view-chat section { display: flex; }
+            main:not(.view-chat) aside { display: block; }
+            main:not(.view-chat) section { display: none; }
+        }
+        
+        aside {
+            display: flex; flex-direction: column; gap: 1rem;
+            overflow-y: auto; padding-bottom: 1rem;
+        }
 
-  <!-- PWA -->
-  <link rel="manifest" href="manifest.json" />
-  <meta name="theme-color" content="#7c3aed" />
+        section {
+            background: var(--panel);
+            border-radius: var(--radius);
+            border: 1px solid rgba(255,255,255,0.05);
+            display: flex; flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .card {
+            background: var(--panel);
+            border-radius: var(--radius);
+            padding: 1rem;
+            border: 1px solid rgba(255,255,255,0.05);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+        
+        h3 { 
+            font-size: 0.95rem; 
+            margin-bottom: 0.8rem; 
+            color: var(--text);
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 0.7rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0,0,0,0.3);
+            color: var(--text);
+            font-size: 0.9rem;
+            margin-bottom: 0.6rem;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus { outline: none; border-color: var(--accent); }
+        
+        button {
+            padding: 0.6rem 0.8rem;
+            border-radius: var(--radius-sm);
+            border: none;
+            font-weight: 600;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: inline-flex; align-items: center; justify-content: center;
+            gap: 0.4rem; transition: opacity 0.2s;
+            width: auto; white-space: nowrap;
+        }
+        
+        button:active { transform: scale(0.98); }
+        .btn-full { width: 100%; }
+        .btn-icon { padding: 0.5rem; border-radius: 50%; width: 36px; height: 36px; }
+        
+        .btn-primary { background: linear-gradient(135deg, var(--accent), #6d28d9); color: white; }
+        .btn-secondary { background: rgba(255,255,255,0.08); color: var(--text); }
+        .btn-danger { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); }
+        .btn-small { padding: 0.3rem 0.5rem; font-size: 0.7rem; }
+        .btn-success { background: rgba(16, 185, 129, 0.2); color: #6ee7b7; }
+        
+        .btn-group { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .btn-group .btn-full { flex: 1; }
+        
+        .user-card {
+            display: flex; align-items: center; gap: 0.6rem;
+            padding: 0.6rem; background: rgba(124, 58, 237, 0.1);
+            border-radius: var(--radius-sm); margin-bottom: 0.8rem;
+        }
+        .user-avatar {
+            width: 40px; height: 40px; border-radius: 50%;
+            background: var(--accent);
+            display: flex; align-items: center; justify-content: center;
+            overflow: hidden; flex-shrink: 0; font-size: 1.2rem;
+        }
+        .user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+        .user-info { overflow: hidden; min-width: 0; }
+        .user-name { font-weight: 600; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .user-npub { font-size: 0.65rem; color: var(--muted); opacity: 0.8; }
+        
+        .list { display: flex; flex-direction: column; gap: 0.2rem; overflow-y: auto; flex: 1; }
+        
+        .list-item {
+            display: flex; align-items: center; gap: 0.7rem;
+            padding: 0.6rem; border-radius: var(--radius-sm);
+            cursor: pointer; border: 1px solid transparent;
+            transition: background 0.2s;
+        }
+        .list-item:hover { background: rgba(255,255,255,0.03); }
+        
+        .group-icon {
+            width: 40px; height: 40px; border-radius: 10px;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem; flex-shrink: 0; overflow: hidden;
+        }
+        .group-icon img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .group-details { flex: 1; min-width: 0; }
+        .group-name { font-weight: 500; font-size: 0.9rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .group-desc { font-size: 0.75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  <!-- Nostr Tools -->
-  <script src="https://unpkg.com/nostr-tools/lib/nostr.bundle.js">  async function searchCommunities(){
-    const term=document.getElementById('searchTerm').value.toLowerCase();
-    const out=document.getElementById('searchResults');
-    out.innerHTML='Buscando comunidades...';
-    const events=await new NostrTools.SimplePool().list(relays,[{kinds:[34550],limit:40}]);
-    out.innerHTML='';
-    events.filter(e=>e.content.toLowerCase().includes(term)).forEach(e=>{
-      const d=document.createElement('div');
-      d.className='post';
-      d.innerText=e.content;
-      out.appendChild(d);
-    });
-  }
+        .tabs { 
+            display: flex; gap: 0.4rem; padding: 0.8rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .tab {
+            background: none; border: none; padding: 0.4rem 0.8rem;
+            color: var(--muted); border-radius: var(--radius-sm);
+        }
+        .tab.active { background: var(--accent); color: white; }
 
-  async function deletePost(eventId){
-    if(!window.nostr) return alert('Use extensão Nostr');
-    const ev={kind:5,content:'',tags:[['e',eventId]],created_at:Math.floor(Date.now()/1000)};
-    const signed=await window.nostr.signEvent(ev);
-    new NostrTools.SimplePool().publish(relays,signed);
-    loadFeed();
-  }
+        #chatContainer {
+            display: flex; flex-direction: column; height: 100%;
+            background: var(--chat-bg);
+        }
+        
+        .chat-header {
+            padding: 0.8rem; background: rgba(21, 21, 32, 0.95);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex; align-items: center; gap: 0.8rem;
+            height: 60px;
+        }
+        
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 1rem;
+            display: flex; flex-direction: column; gap: 0.6rem;
+            scroll-behavior: smooth;
+        }
+        
+        .msg {
+            display: flex; flex-direction: column; max-width: 80%;
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative; /* Para posicionar o botão de delete */
+        }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        
+        .msg.own { align-self: flex-end; align-items: flex-end; }
+        .msg.other { align-self: flex-start; }
+        
+        .msg-bubble {
+            padding: 0.6rem 0.9rem; border-radius: 12px;
+            font-size: 0.95rem; line-height: 1.4; word-wrap: break-word;
+            position: relative; box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .msg-bubble a { color: var(--cyan); text-decoration: underline; word-break: break-all; }
+        .msg-bubble a:hover { opacity: 0.8; }
 
-  async function searchCommunities(){
-    const term=document.getElementById('searchTerm').value.toLowerCase();
-    const out=document.getElementById('searchResults');
-    out.innerHTML='Buscando comunidades...';
+        .msg.own .msg-bubble { 
+            background: var(--accent); color: white; 
+            border-bottom-right-radius: 2px;
+        }
+        .msg.other .msg-bubble { 
+            background: #2a2a35; color: var(--text); 
+            border-bottom-left-radius: 2px;
+        }
+        
+        .msg-meta {
+            font-size: 0.65rem; color: var(--muted); margin-top: 2px;
+            display: flex; gap: 4px; align-items: center;
+        }
+        .msg-author { font-weight: 600; color: var(--cyan); cursor: pointer; }
+        
+        /* Botão de Deletar Mensagem */
+        .msg-delete {
+            background: none; border: none; color: #ef4444; font-size: 0.8rem;
+            cursor: pointer; opacity: 0.6; padding: 0 4px; margin-left: 5px;
+        }
+        .msg-delete:hover { opacity: 1; transform: scale(1.1); }
 
-    const events=await new NostrTools.SimplePool().list(relays,[{kinds:[34550],limit:40}]);
-    out.innerHTML='';
+        .chat-input {
+            padding: 0.8rem; background: var(--panel);
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex; gap: 0.6rem; align-items: flex-end;
+        }
+        .chat-input textarea {
+            margin: 0; resize: none; min-height: 42px; max-height: 100px;
+            border-radius: 20px; padding-left: 1rem;
+        }
+        .btn-send {
+            width: 42px; height: 42px; border-radius: 50%;
+            background: var(--accent); color: white;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
 
-    events
-      .filter(e=>e.content.toLowerCase().includes(term))
-      .forEach(e=>{
-        const data=JSON.parse(e.content||'{}');
-        const box=document.createElement('div');
-        box.className='post';
-        box.innerHTML=`<strong>${data.name||'Comunidade'}</strong><br><small>${data.about||''}</small>`;
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+            backdrop-filter: blur(4px);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 1000; padding: 1rem;
+            opacity: 0; pointer-events: none; transition: opacity 0.2s;
+        }
+        .modal-overlay.active { opacity: 1; pointer-events: all; }
+        .modal {
+            background: var(--panel); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: var(--radius); padding: 1.2rem;
+            width: 100%; max-width: 380px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            transform: translateY(10px); transition: transform 0.2s;
+        }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 1rem; align-items: center; }
+        .close-modal { background: none; color: var(--muted); font-size: 1.4rem; padding: 0; line-height: 1; }
 
-        const btn=document.createElement('button');
-        btn.style.marginTop='.5rem';
-        btn.innerText='Entrar na comunidade';
-        btn.onclick=()=>joinCommunity(e.pubkey,e.id);
+        .hidden { display: none !important; }
+        .alert { 
+            padding: 0.6rem 1rem; border-radius: var(--radius-sm); 
+            position: fixed; top: 1rem; right: 1rem; z-index: 2000;
+            animation: slideIn 0.3s ease; max-width: 280px; font-size: 0.8rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .alert-error { background: #451a1a; color: #fca5a5; border-left: 3px solid var(--danger); }
+        .alert-success { background: #132e25; color: #6ee7b7; border-left: 3px solid var(--success); }
 
-        box.appendChild(btn);
-        out.appendChild(box);
-      });
-  }
-
-  async function joinCommunity(communityPubkey,communityEvent){
-    if(!window.nostr) return alert('Use uma extensão Nostr');
-
-    const ev={
-      kind:30001,
-      content:'',
-      tags:[
-        ['a',`34550:${communityPubkey}:community`],
-        ['p',communityPubkey]
-      ],
-      created_at:Math.floor(Date.now()/1000)
-    };
-
-    const signed=await window.nostr.signEvent(ev);
-    new NostrTools.SimplePool().publish(relays,signed);
-    alert('Você entrou na comunidade ⚡');
-  }
-
-</script>
-
-  <style>
-    :root {
-      --bg: #0b0b11;
-      --card: #151520;
-      --accent: #7c3aed;
-      --accent-2: #22d3ee;
-      --text: #e5e7eb;
-      --muted: #9ca3af;
-      --radius: 18px;
-    }
-
-    * { box-sizing: border-box; }
-
-    body {
-      margin: 0;
-      font-family: Inter, system-ui, sans-serif;
-      background: radial-gradient(circle at top, #1e1b4b, var(--bg));
-      color: var(--text);
-    }
-
-    header {
-      padding: 2.5rem 1.5rem 3rem;
-      text-align: center;
-    }
-
-    header h1 {
-      font-size: 2.2rem;
-      margin: 0;
-    }
-
-    header p {
-      color: var(--muted);
-      max-width: 600px;
-      margin: 0.8rem auto 0;
-    }
-
-    main {
-      max-width: 1200px;
-      margin: -2rem auto 0;
-      padding: 1rem;
-      display: grid;
-      gap: 1.2rem;
-    }
-
-    .card {
-      background: linear-gradient(180deg, #1a1a2e, var(--card));
-      border-radius: var(--radius);
-      padding: 1.3rem;
-      box-shadow: 0 20px 40px rgba(0,0,0,.35);
-    }
-
-    h2 {
-      margin-top: 0;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: .4rem;
-    }
-
-    input, textarea, button {
-      width: 100%;
-      border-radius: 14px;
-      border: none;
-      padding: .8rem;
-      background: #0f172a;
-      color: var(--text);
-      margin-top: .5rem;
-      font-size: .95rem;
-    }
-
-    button {
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: .9rem;
-    }
-
-    button:active { transform: scale(.98); }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      gap: 1.2rem;
-    }
-
-    .feed .post {
-      padding: .9rem 0;
-      border-bottom: 1px solid #2a2a40;
-    }
-
-    .feed .post:last-child { border-bottom: none; }
-
-    footer {
-      text-align: center;
-      padding: 2rem 1rem;
-      color: var(--muted);
-      font-size: .85rem;
-    }
-  </style>
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        
+        .status { font-size: 0.7rem; color: var(--muted); margin-top: 0.4rem; display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--danger); }
+        .status-dot.connected { background: var(--success); }
+        .empty-state { text-align: center; padding: 2rem 1rem; color: var(--muted); font-size: 0.85rem; }
+    </style>
 </head>
 <body>
 
 <header>
-  <h1>⚡ Comunidade Nostr</h1>
-  <p>Um hub descentralizado para sua comunidade — compatível com Amethyst e instalável como app.</p>
+    <h1>⚡ Nostr Groups</h1>
+    <div class="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Conectando...</span>
+    </div>
 </header>
 
-<main>
+<main id="mainContainer">
+    <aside>
+        <!-- Auth Card -->
+        <div class="card">
+            <h3>👤 Conta</h3>
+            
+            <div id="authBox">
+                <button class="btn-primary btn-full" onclick="loginExtension()">🦊 Extensão</button>
+                <div style="text-align: center; margin: 0.6rem 0; font-size: 0.75rem; color: var(--muted);">ou</div>
+                <div class="btn-group">
+                    <button class="btn-secondary btn-full" onclick="showModal('createModal')">Criar</button>
+                    <button class="btn-secondary btn-full" onclick="showModal('loginModal')">Entrar</button>
+                </div>
+                <button id="installBtn" class="btn-secondary btn-full hidden" onclick="installPWA()" style="margin-top: 0.5rem; color: var(--success); border: 1px solid var(--success);">📲 Instalar App</button>
+            </div>
 
-  <section class="card">
-    <h2>🔍 Pesquisar comunidades</h2>
-    <input id="searchTerm" placeholder="nome, npub ou palavra-chave" />
-    <button onclick="searchCommunities()">Pesquisar</button>
-    <div id="searchResults" style="margin-top:1rem"></div>
-  </section>
+            <div id="userBox" class="hidden">
+                <div class="user-card">
+                    <div class="user-avatar" id="userAvatar">👤</div>
+                    <div class="user-info">
+                        <div class="user-name" id="userName">Carregando...</div>
+                        <div class="user-npub" id="userNpub"></div>
+                    </div>
+                </div>
+                <div class="btn-group">
+                    <button class="btn-secondary btn-small" onclick="openProfileModal()">Editar</button>
+                    <button class="btn-secondary btn-small" onclick="copyNpub()">Copiar</button>
+                    <button class="btn-danger btn-small" onclick="logout()">Sair</button>
+                </div>
+            </div>
+        </div>
 
-  <section class="card">
-    <h2>🧩 Identidade da comunidade</h2>
-    <input id="communityName" placeholder="Nome da comunidade" />
-    <textarea id="communityAbout" rows="3" placeholder="Descrição" ></textarea>
-    <input id="communityImage" placeholder="URL do banner / avatar" />
-    <button onclick="publishCommunityMetadata()">Salvar identidade</button>
-  </section>
+        <!-- My Groups -->
+        <div class="card" style="margin-top: 1rem; flex: 1; display: flex; flex-direction: column;">
+            <h3>
+                Meus Grupos 
+                <button class="btn-secondary btn-small" onclick="loadMyGroups()">↻</button>
+            </h3>
+            <div id="myGroups" class="list">
+                <div class="empty-state">
+                    <p>Conecte-se para ver</p>
+                </div>
+            </div>
+        </div>
+    </aside>
 
+    <section>
+        <!-- Explorador / Tabs -->
+        <div id="explorerView" class="card" style="height: 100%; border: none; box-shadow: none; display: flex; flex-direction: column;">
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('explore', this)">🌍 Explorar</button>
+                <button class="tab" onclick="switchTab('search', this)">🔍 Buscar</button>
+                <button class="tab hidden" id="createTabBtn" onclick="switchTab('create', this)">➕ Criar</button>
+            </div>
+
+            <div id="exploreTab" style="flex: 1; overflow: hidden; display: flex; flex-direction: column;">
+                <div id="publicGroups" class="list">
+                    <div class="empty-state">Conectando aos relays...</div>
+                </div>
+            </div>
+
+            <div id="searchTab" class="hidden" style="flex: 1; overflow: hidden; display: flex; flex-direction: column; padding: 1rem;">
+                <input type="text" id="searchInput" placeholder="Digite para buscar..." onkeyup="searchGroups()">
+                <div id="searchResults" class="list"></div>
+            </div>
+
+            <div id="createTab" class="hidden" style="padding: 1rem;">
+                <label>Nome do Grupo</label>
+                <input type="text" id="newGroupName" placeholder="Ex: Bitcoin Brasil">
+                <label>Descrição</label>
+                <textarea id="newGroupDesc" placeholder="Sobre o que é este grupo?"></textarea>
+                <label>URL da Imagem</label>
+                <input type="text" id="newGroupImage" placeholder="https://...">
+                <button class="btn-primary btn-full" onclick="createGroup()">Criar Grupo</button>
+            </div>
+        </div>
+
+        <!-- Chat View (Hidden by default) -->
+        <div id="chatView" class="hidden" style="height: 100%;">
+            <div id="chatContainer">
+                <div class="chat-header">
+                    <button class="btn-secondary btn-icon" onclick="closeChat()">←</button>
+                    <div class="group-icon" id="chatIcon" style="width: 36px; height: 36px;">#</div>
+                    <div class="group-details">
+                        <div class="group-name" id="chatName">Nome do Grupo</div>
+                        <div class="group-desc" id="chatStatus">Conectado</div>
+                    </div>
+                    <!-- Botão de Admin só aparece se for o dono -->
+                    <button id="adminBtn" class="btn-secondary btn-icon hidden" onclick="openAdminModal()">⚙️</button>
+                </div>
+
+                <div id="messageList" class="chat-messages">
+                    <div class="empty-state">Nenhuma mensagem ainda.</div>
+                </div>
+
+                <div class="chat-input">
+                    <textarea id="msgInput" placeholder="Escreva uma mensagem..." onkeydown="if(event.key==='Enter' && !event.shiftKey){event.preventDefault();sendMessage()}"></textarea>
+                    <button class="btn-send" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+    </section>
 </main>
 
-<footer>
-  ⚡ Nostr Community Hub • PWA • GitHub Pages
-</footer>
+<!-- Modals -->
+<div class="modal-overlay" id="createModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔑 Novas Chaves</h3>
+            <button class="close-modal" onclick="closeModal('createModal')">×</button>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--warning); margin-bottom: 1rem; line-height: 1.3;">
+            Guarde sua <strong>nsec</strong>. Ela é a senha da sua conta.
+        </div>
+        <button class="btn-primary btn-full" onclick="generateKeys()">Gerar Chaves</button>
+        <div id="keysOutput" class="hidden" style="margin-top: 1rem;">
+            <label>Pública (npub)</label>
+            <input type="text" id="genNpub" readonly style="font-size: 0.7rem;">
+            <label style="color: var(--danger)">Privada (nsec)</label>
+            <input type="text" id="genNsec" readonly style="font-size: 0.7rem; border-color: var(--danger);">
+            <div class="btn-group">
+                <button class="btn-secondary btn-full" onclick="copyKeys()">Copiar</button>
+                <button class="btn-success btn-full" onclick="useGeneratedKeys()">Usar Conta</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal-overlay" id="loginModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>🔐 Entrar</h3>
+            <button class="close-modal" onclick="closeModal('loginModal')">×</button>
+        </div>
+        <label>Chave Privada (nsec)</label>
+        <input type="password" id="loginNsec" placeholder="nsec1...">
+        <button class="btn-primary btn-full" onclick="loginWithNsec()">Entrar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="profileModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Editar Perfil</h3>
+            <button class="close-modal" onclick="closeModal('profileModal')">×</button>
+        </div>
+        <label>Nome</label>
+        <input type="text" id="profileName">
+        <label>Sobre</label>
+        <textarea id="profileAbout"></textarea>
+        <label>Avatar URL</label>
+        <input type="text" id="profilePicture">
+        <button class="btn-primary btn-full" onclick="saveProfile()">Salvar</button>
+    </div>
+</div>
+
+<div class="modal-overlay" id="groupDetailModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>Detalhes do Grupo</h3>
+            <button class="close-modal" onclick="closeModal('groupDetailModal')">×</button>
+        </div>
+        <div id="groupDetailContent"></div>
+    </div>
+</div>
+
+<!-- Modal de Admin -->
+<div class="modal-overlay" id="adminModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>⚙️ Editar Grupo</h3>
+            <button class="close-modal" onclick="closeModal('adminModal')">×</button>
+        </div>
+        <label>Nome do Grupo</label>
+        <input type="text" id="editGroupName">
+        <label>Descrição</label>
+        <textarea id="editGroupDesc"></textarea>
+        <label>Imagem URL</label>
+        <input type="text" id="editGroupImage">
+        <button class="btn-primary btn-full" onclick="updateGroup()">Salvar Alterações</button>
+    </div>
+</div>
 
 <script>
-  function generateKeys(){
-    const sk = NostrTools.generatePrivateKey();
-    const pk = NostrTools.getPublicKey(sk);
-    const npub = NostrTools.nip19.npubEncode(pk);
-    const nsec = NostrTools.nip19.nsecEncode(sk);
-    document.getElementById('npubOut').value = npub;
-    document.getElementById('nsecOut').value = nsec;
-    document.getElementById('keysBox').style.display = 'block';
-  }
+// ==========================================
+// MÓDULO DE CRIPTOGRAFIA (CORRIGIDO)
+// ==========================================
+const NostrCrypto = (() => {
+    const P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
+    const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
+    const Gx = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798n;
+    const Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8n;
 
-  function downloadKeys(){
-    const text = `Guarde em local seguro!
+    const bigIntToHex = (n) => n.toString(16).padStart(64, '0');
+    const hexToBigInt = (hex) => BigInt('0x' + hex);
+    const hexToBytes = (hex) => Uint8Array.from(hex.match(/.{1,2}/g).map(byte => parseInt(byte, 16)));
+    const bytesToHex = (bytes) => Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
 
-npub:
-${npubOut.value}
-
-nsec (NÃO COMPARTILHE):
-${nsecOut.value}`;
-    const blob = new Blob([text], {type:'text/plain'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'nostr-keys.txt';
-    a.click();
-  }
-
-
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('sw.js');
-  }
-
-  const relays = [
-    'wss://relay.damus.io',
-    'wss://nostr.wine',
-    'wss://relay.snort.social',
-    'wss://nos.lol',
-    'wss://nostr.oxtr.dev',
-    'wss://communities.nos.social',
-    'wss://nostr.mom'
-  ];
-
-  let pubkey;
-
-  function connect() {
-    try {
-      pubkey = NostrTools.nip19.decode(document.getElementById('npub').value).data;
-      document.getElementById('pubkeyStatus').innerText = 'Conectado ✔';
-      loadFeed();
-    } catch { alert('npub inválido'); }
-  }
-
-  async function publishPost() {
-    if (!window.nostr) return alert('Use uma extensão Nostr');
-    const event = { kind: 1, content: postContent.value, tags: [], created_at: Math.floor(Date.now()/1000) };
-    const signed = await window.nostr.signEvent(event);
-    new NostrTools.SimplePool().publish(relays, signed);
-    postContent.value = '';
-  }
-
-  async function publishCommunityMetadata() {
-    if (!window.nostr) return alert('Use uma extensão Nostr');
-    const event = {
-      kind: 34550,
-      content: JSON.stringify({ name: communityName.value, about: communityAbout.value, image: communityImage.value }),
-      tags: [['d','community']],
-      created_at: Math.floor(Date.now()/1000)
+    const mod = (a, b = P) => { const r = a % b; return r >= 0n ? r : r + b; };
+    const modInv = (a, m = P) => {
+        let [t, newT] = [0n, 1n]; let [r, newR] = [m, mod(a, m)];
+        while (newR !== 0n) { const q = r / newR; [t, newT] = [newT, t - q * newT]; [r, newR] = [newR, r - q * newR]; }
+        return mod(t, m);
     };
-    const signed = await window.nostr.signEvent(event);
-    new NostrTools.SimplePool().publish(relays, signed);
-  }
 
-  async function loadFeed() {
-    const feed = document.getElementById('feed');
-    feed.innerHTML = 'Carregando...';
-    const events = await new NostrTools.SimplePool().list(relays, [{ kinds:[1], authors:[pubkey], limit:15 }]);
-    feed.innerHTML = '';
-    events.sort((a,b)=>b.created_at-a.created_at).forEach(e=>{
-      const d=document.createElement('div'); d.className='post'; d.innerText=e.content; feed.appendChild(d);
+    const pointAdd = (p1, p2) => {
+        if (!p1) return p2; if (!p2) return p1;
+        let [x1, y1] = p1, [x2, y2] = p2;
+        if (x1 === x2) {
+            if (y1 !== y2) return null;
+            const lam = mod(3n * x1 * x1 * modInv(2n * y1));
+            const x3 = mod(lam * lam - x1 - x2);
+            return [x3, mod(lam * (x1 - x3) - y1)];
+        } else {
+            const lam = mod((y2 - y1) * modInv(x2 - x1));
+            const x3 = mod(lam * lam - x1 - x2);
+            return [x3, mod(lam * (x1 - x3) - y1)];
+        }
+    };
+
+    const pointMul = (k, p) => {
+        let r = null, q = p;
+        for (let i = 0; i < 256; i++) { if ((k >> BigInt(i)) & 1n) r = pointAdd(r, q); q = pointAdd(q, q); }
+        return r;
+    };
+
+    async function sha256(data) { return new Uint8Array(await crypto.subtle.digest('SHA-256', data)); }
+    async function taggedHash(tag, ...messages) {
+        let tagHash = await sha256(new TextEncoder().encode(tag));
+        let combined = new Uint8Array(tagHash.length * 2 + messages.reduce((acc, m) => acc + m.length, 0));
+        combined.set(tagHash); combined.set(tagHash, tagHash.length);
+        let offset = tagHash.length * 2;
+        messages.forEach(m => { combined.set(m, offset); offset += m.length; });
+        return await sha256(combined);
+    }
+
+    async function sign(privKeyHex, msgHex) {
+        let d = hexToBigInt(privKeyHex); 
+        let P_point = pointMul(d, [Gx, Gy]);
+        if (P_point[1] % 2n !== 0n) d = N - d;
+        
+        let t = new Uint8Array(32); 
+        crypto.getRandomValues(t);
+        
+        let aux = await taggedHash("BIP0340/aux", t);
+        let d_bytes = hexToBytes(bigIntToHex(d));
+        let t_xor_d = new Uint8Array(32);
+        
+        for(let i=0; i<32; i++) {
+            t_xor_d[i] = aux[i] ^ d_bytes[i];
+        }
+
+        let k0_hash = await taggedHash("BIP0340/nonce", t_xor_d, hexToBytes(bigIntToHex(P_point[0])), hexToBytes(msgHex));
+        let k0 = mod(hexToBigInt(bytesToHex(k0_hash)), N);
+        if (k0 === 0n) throw "k0 is zero";
+
+        let R = pointMul(k0, [Gx, Gy]);
+        let k = (R[1] % 2n !== 0n) ? N - k0 : k0;
+        
+        let e_hash = await taggedHash("BIP0340/challenge", hexToBytes(bigIntToHex(R[0])), hexToBytes(bigIntToHex(P_point[0])), hexToBytes(msgHex));
+        let e = mod(hexToBigInt(bytesToHex(e_hash)), N);
+        
+        let s = mod(k + e * d, N);
+        return bigIntToHex(R[0]) + bigIntToHex(s);
+    }
+
+    function getPublicKey(privKey) { return bigIntToHex(pointMul(hexToBigInt(privKey), [Gx, Gy])[0]); }
+    return { getPublicKey, sign, hexToBytes, bytesToHex };
+})();
+
+// Bech32 Simples
+const BECH32_ALPHABET = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
+function bech32Decode(str) {
+    str = str.toLowerCase(); let pos = str.lastIndexOf('1');
+    let hrp = str.slice(0, pos); let data = [];
+    for (let i = pos + 1; i < str.length; i++) data.push(BECH32_ALPHABET.indexOf(str[i]));
+    let acc = 0, bits = 0, out = [];
+    for (let v of data.slice(0, -6)) { acc = (acc << 5) | v; bits += 5; while (bits >= 8) { bits -= 8; out.push((acc >> bits) & 0xff); } }
+    return { hrp, data: new Uint8Array(out) };
+}
+function bech32Encode(hrp, data) {
+    let bits = [], acc = 0, accBits = 0;
+    for (let v of data) { acc = (acc << 8) | v; accBits += 8; while (accBits >= 5) { accBits -= 5; bits.push((acc >> accBits) & 0x1f); } }
+    if (accBits) bits.push((acc << (5 - accBits)) & 0x1f);
+    return hrp + '1' + bits.concat([0,0,0,0,0,0]).map(b => BECH32_ALPHABET[b]).join('');
+}
+
+// ==========================================
+// ESTADO E RELAYS
+// ==========================================
+let user = null;
+let activeGroup = null;
+let activeSubId = null;
+let relays = {};
+const RELAY_URLS = [
+    'wss://purplepag.es', 'wss://relay.snort.social', 'wss://relay.damus.io',
+    'wss://nos.lol', 'wss://relay.primal.net', 'wss://nostr.oxtr.dev',
+    'wss://nostr.wine', 'wss://communities.nos.social', 'wss://nostr.mom'
+];
+let publicGroupsCache = [];
+let userProfilesCache = {}; 
+let deletedIds = new Set(); // ESTADO NOVO: Memória de mensagens apagadas
+
+// ==========================================
+// FUNÇÕES DE REDE
+// ==========================================
+function connect() {
+    RELAY_URLS.forEach(url => {
+        if (relays[url]) return;
+        try {
+            const ws = new WebSocket(url);
+            relays[url] = { ws, status: 0 };
+            ws.onopen = () => {
+                relays[url].status = 1; updateStatus();
+                if (user) { fetchUserProfile(); if(document.querySelector('#myGroups .empty-state')) loadMyGroups(); }
+                if (publicGroupsCache.length === 0) loadPublicGroups();
+            };
+            ws.onclose = () => { relays[url].status = 0; updateStatus(); setTimeout(connect, 5000); };
+            ws.onerror = () => { relays[url].status = 0; };
+            ws.onmessage = handleMessage;
+        } catch (e) { console.error(e); }
     });
-  }
-</script>
+}
 
+const subs = new Map();
+function handleMessage(e) {
+    try {
+        const [type, subId, data] = JSON.parse(e.data);
+        if (type === 'EVENT') {
+            // Se for deleção (Kind 5)
+            if (data.kind === 5) {
+                data.tags.forEach(tag => {
+                    if (tag[0] === 'e') {
+                        deletedIds.add(tag[1]); // CORREÇÃO: Salva na memória
+                        const el = document.getElementById(`msg-${tag[1]}`);
+                        if (el) el.remove();
+                    }
+                });
+                return;
+            }
+
+            if (activeSubId === subId && data.kind === 1) {
+                renderChatMessage(data);
+                notifyNewMessage(data);
+            }
+            if (subs.has(subId)) subs.get(subId)(data);
+        }
+    } catch {}
+}
+
+function subscribe(filter, callback) {
+    const subId = Math.random().toString(36).slice(2);
+    subs.set(subId, callback);
+    broadcast(JSON.stringify(['REQ', subId, filter]));
+    return subId;
+}
+
+function unsubscribe(subId) {
+    if(!subId) return;
+    subs.delete(subId);
+    broadcast(JSON.stringify(['CLOSE', subId]));
+}
+
+function broadcast(msg) {
+    Object.values(relays).forEach(r => { if (r.status === 1) r.ws.send(msg); });
+}
+
+async function publishEvent(event) {
+    if (user.type === 'ext') { event = await window.nostr.signEvent(event); } 
+    else {
+        event.id = NostrCrypto.bytesToHex(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(JSON.stringify([0, event.pubkey, event.created_at, event.kind, event.tags, event.content])))));
+        event.sig = await NostrCrypto.sign(user.privKey, event.id);
+    }
+    broadcast(JSON.stringify(['EVENT', event]));
+    return event;
+}
+
+function updateStatus() {
+    const connected = Object.values(relays).filter(r => r.status === 1).length;
+    const dot = document.getElementById('statusDot');
+    const txt = document.getElementById('statusText');
+    if (connected > 0) { dot.classList.add('connected'); txt.textContent = `${connected} relays conectados`; } 
+    else { dot.classList.remove('connected'); txt.textContent = 'Conectando...'; }
+}
+
+async function waitForRelays(timeout = 3000) {
+    const start = Date.now();
+    while (Date.now() - start < timeout) {
+        if (Object.values(relays).some(r => r.status === 1)) return true;
+        await new Promise(r => setTimeout(r, 200));
+    }
+    return false;
+}
+
+// ==========================================
+// APP LOGIC
+// ==========================================
+
+async function loginWithNsec() {
+    const nsec = document.getElementById('loginNsec').value.trim();
+    try {
+        if (!nsec.startsWith('nsec')) throw "Formato inválido";
+        const { data } = bech32Decode(nsec);
+        const privKey = NostrCrypto.bytesToHex(data);
+        const pubKey = NostrCrypto.getPublicKey(privKey);
+        user = { type: 'local', privKey, pubKey, npub: bech32Encode('npub', NostrCrypto.hexToBytes(pubKey)) };
+        completeLogin();
+        closeModal('loginModal');
+    } catch (e) { console.error(e); showAlert('Chave inválida!', 'error'); }
+}
+
+async function loginExtension() {
+    if (!window.nostr) return showAlert('Extensão não encontrada', 'error');
+    try {
+        const pubKey = await window.nostr.getPublicKey();
+        user = { type: 'ext', pubKey, npub: bech32Encode('npub', NostrCrypto.hexToBytes(pubKey)) };
+        completeLogin();
+    } catch { showAlert('Erro na extensão', 'error'); }
+}
+
+function completeLogin() {
+    document.getElementById('authBox').classList.add('hidden');
+    document.getElementById('userBox').classList.remove('hidden');
+    document.getElementById('createTabBtn').classList.remove('hidden');
+    document.getElementById('userNpub').textContent = user.npub.slice(0, 10) + '...' + user.npub.slice(-4);
+    if ("Notification" in window) Notification.requestPermission();
+    fetchUserProfile();
+    loadMyGroups();
+}
+
+function logout() { user = null; location.reload(); }
+
+function fetchUserProfile() {
+    if (!user) return;
+    subscribe({ kinds: [0], authors: [user.pubKey], limit: 1 }, (event) => {
+        try {
+            const content = JSON.parse(event.content);
+            if (content.name || content.display_name) {
+                const name = content.display_name || content.name;
+                document.getElementById('userName').textContent = name;
+                document.getElementById('profileName').value = content.name || "";
+            }
+            if (content.picture) {
+                document.getElementById('userAvatar').innerHTML = `<img src="${content.picture}" style="width:100%;height:100%;object-fit:cover">`;
+                document.getElementById('profilePicture').value = content.picture;
+            }
+            if (content.about) document.getElementById('profileAbout').value = content.about;
+        } catch(e) {}
+    });
+}
+
+function openProfileModal() {
+    if(!user) return;
+    fetchUserProfile(); 
+    showModal('profileModal');
+}
+
+// ==========================================
+// GRUPOS E CHAT
+// ==========================================
+
+async function loadPublicGroups() {
+    const container = document.getElementById('publicGroups');
+    if (publicGroupsCache.length === 0) container.innerHTML = '';
+    await waitForRelays();
+    let isFirst = true;
+    subscribe({ kinds: [34550], limit: 50 }, (event) => {
+        if (isFirst) { if (container.querySelector('.loading')) container.innerHTML = ''; isFirst = false; }
+        renderGroupItem(event, container);
+        if (!publicGroupsCache.some(e => e.id === event.id)) publicGroupsCache.push(event);
+    });
+}
+
+function searchGroups() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const container = document.getElementById('searchResults');
+    container.innerHTML = '';
+    if (query.length < 3) { container.innerHTML = '<div class="empty-state"><p>Digite 3 letras</p></div>'; return; }
+    const matches = publicGroupsCache.filter(event => {
+        const name = (event.tags.find(t => t[0] === 'name') || [])[1] || '';
+        const desc = (event.tags.find(t => t[0] === 'description') || [])[1] || '';
+        return name.toLowerCase().includes(query) || desc.toLowerCase().includes(query);
+    });
+    if (matches.length > 0) matches.forEach(event => renderGroupItem(event, container));
+    else container.innerHTML = '<div class="empty-state"><p>Nada encontrado</p></div>';
+}
+
+async function loadMyGroups() {
+    if (!user) return;
+    const container = document.getElementById('myGroups');
+    if (!container.querySelector('.list-item')) container.innerHTML = '<div class="loading">Sincronizando...</div>';
+    await waitForRelays();
+    
+    subscribe({ kinds: [10004], authors: [user.pubKey], '#d': ['groups'], limit: 1 }, (event) => {
+        container.innerHTML = ''; 
+        const groupTags = event.tags.filter(t => t[0] === 'a');
+        if (groupTags.length === 0) { container.innerHTML = '<div class="empty-state">Sem grupos</div>'; return; }
+        groupTags.forEach(tag => {
+            const [kind, pubkey, dtag] = tag[1].split(':');
+            subscribe({ kinds: [34550], authors: [pubkey], '#d': [dtag], limit: 1 }, (ev) => {
+                renderGroupItem(ev, container, true);
+            });
+        });
+    });
+}
+
+function renderGroupItem(event, container, isMyGroup = false) {
+    if (container.querySelector(`[data-id="${event.id}"]`)) return;
+    let meta = { id: event.id, pubkey: event.pubkey };
+    event.tags.forEach(t => {
+        if(t[0] === 'name') meta.name = t[1];
+        if(t[0] === 'description') meta.desc = t[1];
+        if(t[0] === 'image') meta.image = t[1];
+        if(t[0] === 'd') meta.d = t[1];
+    });
+    
+    const el = document.createElement('div');
+    el.className = 'list-item';
+    el.dataset.id = event.id;
+    el.innerHTML = `
+        <div class="group-icon">${meta.image ? `<img src="${meta.image}">` : '#'}</div>
+        <div class="group-details">
+            <div class="group-name">${meta.name || meta.d}</div>
+            <div class="group-desc">${meta.desc || 'Grupo Nostr'}</div>
+        </div>
+        ${!isMyGroup ? `<button class="btn-secondary btn-small" onclick="event.stopPropagation(); joinGroup('${event.pubkey}', '${meta.d}')">Entrar</button>` : ''}
+    `;
+    el.onclick = () => { isMyGroup ? openChat(meta) : showGroupDetails(meta); };
+    container.appendChild(el);
+}
+
+// LÓGICA DO CHAT
+function openChat(meta) {
+    activeGroup = meta;
+    deletedIds.clear(); // CORREÇÃO: Limpa memória ao entrar
+    document.getElementById('explorerView').classList.add('hidden');
+    document.getElementById('chatView').classList.remove('hidden');
+    document.getElementById('mainContainer').classList.add('view-chat');
+    
+    document.getElementById('chatName').textContent = meta.name || meta.d;
+    document.getElementById('chatIcon').innerHTML = meta.image ? `<img src="${meta.image}">` : '#';
+    document.getElementById('messageList').innerHTML = '<div class="loading">Carregando mensagens...</div>';
+
+    const adminBtn = document.getElementById('adminBtn');
+    if (user && user.pubKey === meta.pubkey) adminBtn.classList.remove('hidden');
+    else adminBtn.classList.add('hidden');
+
+    if(activeSubId) unsubscribe(activeSubId);
+    
+    const aTag = `34550:${meta.pubkey}:${meta.d}`;
+    activeSubId = subscribe({ kinds: [1, 5], '#a': [aTag], limit: 30 }, (event) => {});
+
+    setTimeout(() => {
+        const list = document.getElementById('messageList');
+        if(list.querySelector('.loading')) list.innerHTML = '';
+    }, 1000);
+}
+
+function closeChat() {
+    activeGroup = null;
+    if(activeSubId) unsubscribe(activeSubId);
+    activeSubId = null;
+    document.getElementById('chatView').classList.add('hidden');
+    document.getElementById('explorerView').classList.remove('hidden');
+    document.getElementById('mainContainer').classList.remove('view-chat');
+}
+
+async function sendMessage() {
+    const input = document.getElementById('msgInput');
+    const text = input.value.trim();
+    if (!text || !activeGroup || !user) return;
+    input.value = ''; 
+    const aTag = `34550:${activeGroup.pubkey}:${activeGroup.d}`;
+    const event = {
+        kind: 1,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: [['a', aTag, '', 'root']], 
+        content: text
+    };
+    try { await publishEvent(event); renderChatMessage(event); } 
+    catch (e) { showAlert('Falha ao enviar', 'error'); input.value = text; }
+}
+
+async function deleteMessage(messageId) {
+    if (!confirm('Apagar esta mensagem?')) return;
+    
+    deletedIds.add(messageId); // CORREÇÃO: Adiciona à memória imediatamente
+    
+    const aTag = `34550:${activeGroup.pubkey}:${activeGroup.d}`;
+    const event = {
+        kind: 5,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: [
+            ['e', messageId],
+            ['a', aTag]
+        ],
+        content: 'moderation request'
+    };
+
+    try {
+        await publishEvent(event);
+        const el = document.getElementById(`msg-${messageId}`);
+        if(el) el.remove();
+        showAlert('Mensagem apagada', 'success');
+    } catch(e) { showAlert('Erro ao apagar', 'error'); }
+}
+
+function renderChatMessage(event) {
+    if (event.content.trim().startsWith('nostr:')) return;
+    if (deletedIds.has(event.id)) return; // CORREÇÃO: Checa se já foi apagado
+
+    const list = document.getElementById('messageList');
+    if(list.querySelector('.loading')) list.innerHTML = '';
+    if(document.getElementById(`msg-${event.id}`)) return;
+
+    const isMe = user && event.pubkey === user.pubKey;
+    const isOwner = activeGroup && user && user.pubKey === activeGroup.pubkey;
+    const canDelete = isMe || isOwner;
+
+    const div = document.createElement('div');
+    div.id = `msg-${event.id}`;
+    div.className = `msg ${isMe ? 'own' : 'other'}`;
+    div.dataset.timestamp = event.created_at; 
+    
+    let authorName = isMe ? 'Você' : (userProfilesCache[event.pubkey]?.name || event.pubkey.slice(0,6));
+    if (!isMe && !userProfilesCache[event.pubkey]) fetchAuthorProfile(event.pubkey);
+
+    div.innerHTML = `
+        <div class="msg-bubble">
+            ${formatMessage(event.content)}
+            <div class="msg-meta">
+                <span class="msg-author" data-pubkey="${event.pubkey}">${authorName}</span>
+                <span>${new Date(event.created_at * 1000).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span>
+                ${canDelete ? `<button class="msg-delete" onclick="deleteMessage('${event.id}')">🗑</button>` : ''}
+            </div>
+        </div>
+    `;
+    
+    const existingMessages = Array.from(list.children);
+    let inserted = false;
+    for (let child of existingMessages) {
+        if (child.classList.contains('empty-state') || child.classList.contains('loading')) continue;
+        const childTime = parseInt(child.dataset.timestamp || 0);
+        if (event.created_at < childTime) {
+            list.insertBefore(div, child);
+            inserted = true;
+            break;
+        }
+    }
+    if (!inserted) { list.appendChild(div); list.scrollTop = list.scrollHeight; }
+}
+
+function formatMessage(text) {
+    if (!text) return '';
+    text = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return text.replace(urlRegex, (url) => {
+        const lowerUrl = url.toLowerCase();
+        if (lowerUrl.match(/\.(jpeg|jpg|gif|png|webp)$/) != null) return `<br><img src="${url}" style="max-width:100%; border-radius:8px; margin-top:5px; cursor:pointer;" onclick="window.open('${url}', '_blank')"><br>`;
+        if (lowerUrl.match(/\.(mp4|webm|ogg|mov)$/) != null) return `<br><video controls src="${url}" style="max-width:100%; border-radius:8px; margin-top:5px;"></video><br>`;
+        if (lowerUrl.match(/\.(mp3|wav|m4a)$/) != null) return `<br><audio controls src="${url}" style="width:100%; margin-top:5px;"></audio><br>`;
+        return `<a href="${url}" target="_blank" rel="noopener noreferrer" style="color:var(--cyan); text-decoration:underline; word-break:break-all;">${url}</a>`;
+    });
+}
+
+function fetchAuthorProfile(pubkey) {
+    if(userProfilesCache[pubkey]) return;
+    userProfilesCache[pubkey] = { name: pubkey.slice(0,6) };
+    subscribe({ kinds: [0], authors: [pubkey], limit: 1 }, (ev) => {
+        try {
+            const c = JSON.parse(ev.content);
+            const name = c.name || c.display_name;
+            if(name) {
+                userProfilesCache[pubkey] = { name, pic: c.picture };
+                document.querySelectorAll(`.msg-author[data-pubkey="${pubkey}"]`).forEach(el => el.textContent = name);
+            }
+        } catch(e){}
+    });
+}
+
+function notifyNewMessage(event) {
+    if (user && event.pubkey === user.pubKey) return;
+    if (document.visibilityState === 'visible' && activeGroup) return;
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification(`Nova mensagem em ${activeGroup?.name || 'Grupo'}`, { body: event.content, icon: 'icon.png' });
+    }
+}
+
+// ADMINISTRAÇÃO DO GRUPO
+function openAdminModal() {
+    if(!activeGroup) return;
+    document.getElementById('editGroupName').value = activeGroup.name || '';
+    document.getElementById('editGroupDesc').value = activeGroup.desc || '';
+    document.getElementById('editGroupImage').value = activeGroup.image || '';
+    showModal('adminModal');
+}
+
+async function updateGroup() {
+    if(!activeGroup || !user) return;
+    const name = document.getElementById('editGroupName').value;
+    const desc = document.getElementById('editGroupDesc').value;
+    const img = document.getElementById('editGroupImage').value;
+    const event = {
+        kind: 34550,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: [['d', activeGroup.d], ['name', name], ['description', desc], ['image', img]],
+        content: ''
+    };
+    try {
+        await publishEvent(event);
+        showAlert('Grupo atualizado!', 'success');
+        closeModal('adminModal');
+        activeGroup.name = name; activeGroup.desc = desc; activeGroup.image = img;
+        document.getElementById('chatName').textContent = name;
+        if(img) document.getElementById('chatIcon').innerHTML = `<img src="${img}">`;
+    } catch(e) { showAlert('Erro ao atualizar', 'error'); }
+}
+
+async function createGroup() {
+    const name = document.getElementById('newGroupName').value;
+    const desc = document.getElementById('newGroupDesc').value;
+    const image = document.getElementById('newGroupImage').value;
+    if (!name) return showAlert('Nome obrigatório', 'error');
+    const dTag = name.toLowerCase().replace(/\s+/g, '-');
+    const event = {
+        kind: 34550,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: [['d', dTag], ['name', name], ['description', desc], ['image', image]],
+        content: ''
+    };
+    try {
+        await publishEvent(event);
+        showAlert('Grupo criado!', 'success');
+        joinGroup(user.pubKey, dTag);
+        switchTab('explore', document.querySelector('.tab'));
+    } catch (e) { showAlert('Erro ao criar: ' + e, 'error'); }
+}
+
+async function joinGroup(hostPubkey, dTag) {
+    if (!user) return showAlert('Faça login', 'error');
+    const event = {
+        kind: 10004,
+        created_at: Math.floor(Date.now() / 1000),
+        pubkey: user.pubKey,
+        tags: [['d', 'groups'], ['a', `34550:${hostPubkey}:${dTag}`]],
+        content: ''
+    };
+    try { await publishEvent(event); showAlert('Grupo salvo!', 'success'); loadMyGroups(); } 
+    catch (e) { showAlert('Erro ao salvar', 'error'); }
+}
+
+function showGroupDetails(meta) {
+    document.getElementById('groupDetailContent').innerHTML = `
+        <div style="text-align: center; margin-bottom: 1rem;">
+            <div class="group-icon" style="width: 64px; height: 64px; margin: 0 auto 1rem; font-size: 2rem;">
+                ${meta.image ? `<img src="${meta.image}">` : '#'}
+            </div>
+            <h3>${meta.name || meta.d}</h3>
+            <p style="color: var(--muted); font-size: 0.9rem;">${meta.desc || ''}</p>
+        </div>
+    `;
+    showModal('groupDetailModal');
+}
+
+async function saveProfile() {
+    const content = JSON.stringify({
+        name: document.getElementById('profileName').value,
+        about: document.getElementById('profileAbout').value,
+        picture: document.getElementById('profilePicture').value
+    });
+    const event = { kind: 0, created_at: Math.floor(Date.now() / 1000), pubkey: user.pubKey, tags: [], content: content };
+    try { await publishEvent(event); showAlert('Salvo!', 'success'); closeModal('profileModal'); fetchUserProfile(); } 
+    catch { showAlert('Erro', 'error'); }
+}
+
+function switchTab(id, btn) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('[id$="Tab"]').forEach(d => d.classList.add('hidden'));
+    document.getElementById(id + 'Tab').classList.remove('hidden');
+    if (btn) btn.classList.add('active');
+    if (id === 'explore') loadPublicGroups();
+}
+
+function showModal(id) { document.getElementById(id).classList.add('active'); }
+function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+function showAlert(msg, type) {
+    const div = document.createElement('div'); div.className = `alert alert-${type}`; div.textContent = msg;
+    document.body.appendChild(div); setTimeout(() => div.remove(), 3000);
+}
+
+function generateKeys() {
+    const privBytes = new Uint8Array(32); crypto.getRandomValues(privBytes);
+    const pubHex = NostrCrypto.getPublicKey(NostrCrypto.bytesToHex(privBytes));
+    document.getElementById('genNpub').value = bech32Encode('npub', NostrCrypto.hexToBytes(pubHex));
+    document.getElementById('genNsec').value = bech32Encode('nsec', privBytes);
+    document.getElementById('keysOutput').classList.remove('hidden');
+}
+function copyKeys() { navigator.clipboard.writeText(`nsec: ${document.getElementById('genNsec').value}\nnpub: ${document.getElementById('genNpub').value}`); showAlert('Copiado!', 'success'); }
+function useGeneratedKeys() { document.getElementById('loginNsec').value = document.getElementById('genNsec').value; closeModal('createModal'); showModal('loginModal'); }
+function copyNpub() { navigator.clipboard.writeText(user.npub); showAlert('Copiado!', 'success'); }
+
+let deferredPrompt;
+window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').classList.remove('hidden'); });
+async function installPWA() { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') deferredPrompt = null; }
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+connect();
+</script>
 </body>
 </html>
