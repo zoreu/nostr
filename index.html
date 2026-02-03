@@ -508,7 +508,7 @@
 
 <script>
 // ==========================================
-// MÓDULO DE CRIPTOGRAFIA (CORRIGIDO)
+// MÓDULO DE CRIPTOGRAFIA
 // ==========================================
 const NostrCrypto = (() => {
     const P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
@@ -560,31 +560,20 @@ const NostrCrypto = (() => {
     }
 
     async function sign(privKeyHex, msgHex) {
-        let d = hexToBigInt(privKeyHex); 
-        let P_point = pointMul(d, [Gx, Gy]);
+        let d = hexToBigInt(privKeyHex); let P_point = pointMul(d, [Gx, Gy]);
         if (P_point[1] % 2n !== 0n) d = N - d;
-        
-        let t = new Uint8Array(32); 
-        crypto.getRandomValues(t);
-        
+        let t = new Uint8Array(32); crypto.getRandomValues(t);
         let aux = await taggedHash("BIP0340/aux", t);
         let d_bytes = hexToBytes(bigIntToHex(d));
         let t_xor_d = new Uint8Array(32);
-        
-        for(let i=0; i<32; i++) {
-            t_xor_d[i] = aux[i] ^ d_bytes[i];
-        }
-
+        for(let i=0; i<32; i++) { t_xor_d[i] = aux[i] ^ d_bytes[i]; }
         let k0_hash = await taggedHash("BIP0340/nonce", t_xor_d, hexToBytes(bigIntToHex(P_point[0])), hexToBytes(msgHex));
         let k0 = mod(hexToBigInt(bytesToHex(k0_hash)), N);
         if (k0 === 0n) throw "k0 is zero";
-
         let R = pointMul(k0, [Gx, Gy]);
         let k = (R[1] % 2n !== 0n) ? N - k0 : k0;
-        
         let e_hash = await taggedHash("BIP0340/challenge", hexToBytes(bigIntToHex(R[0])), hexToBytes(bigIntToHex(P_point[0])), hexToBytes(msgHex));
         let e = mod(hexToBigInt(bytesToHex(e_hash)), N);
-        
         let s = mod(k + e * d, N);
         return bigIntToHex(R[0]) + bigIntToHex(s);
     }
@@ -624,7 +613,7 @@ const RELAY_URLS = [
 ];
 let publicGroupsCache = [];
 let userProfilesCache = {}; 
-let deletedIds = new Set(); // ESTADO NOVO: Memória de mensagens apagadas
+let deletedIds = new Set(); 
 
 // ==========================================
 // FUNÇÕES DE REDE
@@ -652,18 +641,16 @@ function handleMessage(e) {
     try {
         const [type, subId, data] = JSON.parse(e.data);
         if (type === 'EVENT') {
-            // Se for deleção (Kind 5)
             if (data.kind === 5) {
                 data.tags.forEach(tag => {
                     if (tag[0] === 'e') {
-                        deletedIds.add(tag[1]); // CORREÇÃO: Salva na memória
+                        deletedIds.add(tag[1]); 
                         const el = document.getElementById(`msg-${tag[1]}`);
                         if (el) el.remove();
                     }
                 });
                 return;
             }
-
             if (activeSubId === subId && data.kind === 1) {
                 renderChatMessage(data);
                 notifyNewMessage(data);
@@ -729,6 +716,8 @@ async function loginWithNsec() {
         const privKey = NostrCrypto.bytesToHex(data);
         const pubKey = NostrCrypto.getPublicKey(privKey);
         user = { type: 'local', privKey, pubKey, npub: bech32Encode('npub', NostrCrypto.hexToBytes(pubKey)) };
+        // PERSISTÊNCIA DE SESSÃO
+        localStorage.setItem('nostr_user', JSON.stringify(user));
         completeLogin();
         closeModal('loginModal');
     } catch (e) { console.error(e); showAlert('Chave inválida!', 'error'); }
@@ -739,6 +728,8 @@ async function loginExtension() {
     try {
         const pubKey = await window.nostr.getPublicKey();
         user = { type: 'ext', pubKey, npub: bech32Encode('npub', NostrCrypto.hexToBytes(pubKey)) };
+        // PERSISTÊNCIA DE SESSÃO
+        localStorage.setItem('nostr_user', JSON.stringify(user));
         completeLogin();
     } catch { showAlert('Erro na extensão', 'error'); }
 }
@@ -753,7 +744,11 @@ function completeLogin() {
     loadMyGroups();
 }
 
-function logout() { user = null; location.reload(); }
+function logout() { 
+    user = null;
+    localStorage.removeItem('nostr_user'); // LIMPA SESSÃO
+    location.reload(); 
+}
 
 function fetchUserProfile() {
     if (!user) return;
@@ -857,7 +852,7 @@ function renderGroupItem(event, container, isMyGroup = false) {
 // LÓGICA DO CHAT
 function openChat(meta) {
     activeGroup = meta;
-    deletedIds.clear(); // CORREÇÃO: Limpa memória ao entrar
+    deletedIds.clear(); 
     document.getElementById('explorerView').classList.add('hidden');
     document.getElementById('chatView').classList.remove('hidden');
     document.getElementById('mainContainer').classList.add('view-chat');
@@ -910,7 +905,7 @@ async function sendMessage() {
 async function deleteMessage(messageId) {
     if (!confirm('Apagar esta mensagem?')) return;
     
-    deletedIds.add(messageId); // CORREÇÃO: Adiciona à memória imediatamente
+    deletedIds.add(messageId); 
     
     const aTag = `34550:${activeGroup.pubkey}:${activeGroup.d}`;
     const event = {
@@ -934,7 +929,7 @@ async function deleteMessage(messageId) {
 
 function renderChatMessage(event) {
     if (event.content.trim().startsWith('nostr:')) return;
-    if (deletedIds.has(event.id)) return; // CORREÇÃO: Checa se já foi apagado
+    if (deletedIds.has(event.id)) return; 
 
     const list = document.getElementById('messageList');
     if(list.querySelector('.loading')) list.innerHTML = '';
@@ -1102,6 +1097,11 @@ async function saveProfile() {
     catch { showAlert('Erro', 'error'); }
 }
 
+function escapeHtml(text) {
+    if(!text) return '';
+    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+}
+
 function switchTab(id, btn) {
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('[id$="Tab"]').forEach(d => d.classList.add('hidden'));
@@ -1132,6 +1132,13 @@ let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBtn').classList.remove('hidden'); });
 async function installPWA() { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') deferredPrompt = null; }
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+
+// AUTO-LOGIN AO INICIAR
+const savedUser = localStorage.getItem('nostr_user');
+if (savedUser) {
+    user = JSON.parse(savedUser);
+    completeLogin();
+}
 
 connect();
 </script>
