@@ -710,7 +710,7 @@ function updateStatus() {
     const connected = Object.values(relays).filter(r => r.status === 1).length;
     const dot = document.getElementById('statusDot');
     const txt = document.getElementById('statusText');
-    if (connected > 0) { dot.classList.add('connected'); txt.textContent = `${connected} conectados`; } 
+    if (connected > 0) { dot.classList.add('connected'); txt.textContent = `${connected} relays conectados`; } 
     else { dot.classList.remove('connected'); txt.textContent = 'Conectando...'; }
 }
 
