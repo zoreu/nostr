@@ -74,6 +74,9 @@
             overflow: hidden;
         }
         
+        /* Utilitários de Visibilidade Mobile */
+        .mobile-only { display: none !important; }
+
         @media (max-width: 700px) { 
             main { 
                 grid-template-columns: 1fr; 
@@ -81,6 +84,9 @@
                 gap: 0;
             }
             .desktop-only { display: none !important; }
+            .mobile-only { display: inline-flex !important; }
+            
+            /* Lógica de Troca de Visualização */
             main.view-chat aside { display: none; }
             main.view-chat section { display: flex; }
             main:not(.view-chat) aside { display: block; }
@@ -343,7 +349,7 @@
                 <div class="user-card">
                     <div class="user-avatar" id="userAvatar">👤</div>
                     <div class="user-info">
-                        <div class="user-name" id="userName">Carregando...</div>
+                        <div class="user-name" id="userName">Usuario sem nome</div>
                         <div class="user-npub" id="userNpub"></div>
                     </div>
                 </div>
@@ -359,11 +365,17 @@
         <div class="card" style="margin-top: 1rem; flex: 1; display: flex; flex-direction: column;">
             <h3>
                 Meus Grupos 
-                <button class="btn-secondary btn-small" onclick="loadMyGroups()">↻</button>
+                <div style="display:flex; gap:5px">
+                    <button class="btn-secondary btn-small" onclick="loadMyGroups()">↻</button>
+                    <!-- CORREÇÃO: Botão para abrir explorador no mobile -->
+                    <button class="btn-primary btn-small mobile-only" onclick="openMobileExplorer()">🔍</button>
+                </div>
             </h3>
             <div id="myGroups" class="list">
                 <div class="empty-state">
                     <p>Conecte-se para ver</p>
+                    <!-- CORREÇÃO: Botão no estado vazio para mobile -->
+                    <button class="btn-primary btn-small mobile-only" style="margin-top:10px" onclick="openMobileExplorer()">Encontrar Grupos</button>
                 </div>
             </div>
         </div>
@@ -372,6 +384,13 @@
     <section>
         <!-- Explorador / Tabs -->
         <div id="explorerView" class="card" style="height: 100%; border: none; box-shadow: none; display: flex; flex-direction: column;">
+            <!-- CORREÇÃO: Botão de voltar no cabeçalho do explorador para mobile -->
+            <div class="chat-header mobile-only" style="margin-bottom: 10px; border-radius: var(--radius-sm); justify-content: space-between;">
+                <button class="btn-secondary btn-icon" onclick="closeMobileExplorer()">←</button>
+                <span style="font-weight:600">Explorar</span>
+                <div style="width:36px"></div> <!-- Spacer -->
+            </div>
+
             <div class="tabs">
                 <button class="tab active" onclick="switchTab('explore', this)">🌍 Explorar</button>
                 <button class="tab" onclick="switchTab('search', this)">🔍 Buscar</button>
@@ -691,7 +710,7 @@ function updateStatus() {
     const connected = Object.values(relays).filter(r => r.status === 1).length;
     const dot = document.getElementById('statusDot');
     const txt = document.getElementById('statusText');
-    if (connected > 0) { dot.classList.add('connected'); txt.textContent = `${connected} relays conectados`; } 
+    if (connected > 0) { dot.classList.add('connected'); txt.textContent = `${connected} conectados`; } 
     else { dot.classList.remove('connected'); txt.textContent = 'Conectando...'; }
 }
 
@@ -808,13 +827,13 @@ function searchGroups() {
 async function loadMyGroups() {
     if (!user) return;
     const container = document.getElementById('myGroups');
-    if (!container.querySelector('.list-item')) container.innerHTML = '<div class="loading">Sincronizando...</div>';
+    if (!container.querySelector('.list-item')) container.innerHTML = '<div class="loading">Aguardando...</div>';
     await waitForRelays();
     
     subscribe({ kinds: [10004], authors: [user.pubKey], '#d': ['groups'], limit: 1 }, (event) => {
         container.innerHTML = ''; 
         const groupTags = event.tags.filter(t => t[0] === 'a');
-        if (groupTags.length === 0) { container.innerHTML = '<div class="empty-state">Sem grupos</div>'; return; }
+        if (groupTags.length === 0) { container.innerHTML = '<div class="empty-state"><p>Conecte-se para ver</p><button class="btn-primary btn-small mobile-only" style="margin-top:10px" onclick="openMobileExplorer()">Encontrar Grupos</button></div>'; return; }
         groupTags.forEach(tag => {
             const [kind, pubkey, dtag] = tag[1].split(':');
             subscribe({ kinds: [34550], authors: [pubkey], '#d': [dtag], limit: 1 }, (ev) => {
@@ -847,6 +866,17 @@ function renderGroupItem(event, container, isMyGroup = false) {
     `;
     el.onclick = () => { isMyGroup ? openChat(meta) : showGroupDetails(meta); };
     container.appendChild(el);
+}
+
+// LÓGICA DE NAVEGAÇÃO MOBILE
+function openMobileExplorer() {
+    document.getElementById('mainContainer').classList.add('view-chat');
+    document.getElementById('chatView').classList.add('hidden');
+    document.getElementById('explorerView').classList.remove('hidden');
+}
+
+function closeMobileExplorer() {
+    document.getElementById('mainContainer').classList.remove('view-chat');
 }
 
 // LÓGICA DO CHAT
@@ -1095,11 +1125,6 @@ async function saveProfile() {
     const event = { kind: 0, created_at: Math.floor(Date.now() / 1000), pubkey: user.pubKey, tags: [], content: content };
     try { await publishEvent(event); showAlert('Salvo!', 'success'); closeModal('profileModal'); fetchUserProfile(); } 
     catch { showAlert('Erro', 'error'); }
-}
-
-function escapeHtml(text) {
-    if(!text) return '';
-    return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
 
 function switchTab(id, btn) {
