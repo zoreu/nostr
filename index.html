@@ -164,12 +164,19 @@
         }        
 
         /* PWA */
-        @media (display-mode: standalone) {
+        /* @media (display-mode: standalone) {
             aside,
             section {
                 padding-bottom: 5.5%;
             }
-        }     
+        }      */
+
+        @media (display-mode: standalone) and (pointer: coarse) {
+            aside,
+            section {
+                padding-bottom: max(5.5%, 12vh, env(safe-area-inset-bottom));
+            }
+        }        
     </style>
 </head>
 <body>
