@@ -76,8 +76,7 @@
             scroll-behavior: smooth;
         }
 
-        .chat-input-area {
-            padding: 10px; background: var(--panel); border-top: 1px solid var(--border); flex-shrink: 0; width: 100%; }
+        .chat-input-area { padding: 10px; background: var(--panel); border-top: 1px solid var(--border); flex-shrink: 0; width: 100%; }
 
         /* Messages */
         .msg { max-width: 85%; display: flex; flex-direction: column; position: relative; animation: fadeIn 0.1s; }
@@ -147,10 +146,6 @@
         .key-box { background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.75rem; word-break: break-all; margin: 10px 0; color: var(--cyan); border: 1px solid var(--border); user-select: all; cursor: pointer; }
 
         .install-btn { color: var(--cyan) !important; border: 1px solid var(--cyan) !important; }
-        aside,
-        section {
-        padding-bottom: 21%;
-        }        
     </style>
 </head>
 <body>
@@ -192,7 +187,7 @@
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
                 <div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile()">
                     <div class="avatar" id="myAvatar">?</div>
-                    <div><div id="myName" style="font-weight:bold">Eu</div><div id="relayCount" class="relay-status">0 Relays conectados</div></div>
+                    <div><div id="myName" style="font-weight:bold">Eu</div><div id="relayCount" class="relay-status">0 Relays</div></div>
                 </div>
                 <div style="display:flex; gap:5px; align-items:center">
                     <button class="install-btn hidden" onclick="installPWA()" style="background:none;border:none;cursor:pointer;font-size:1.2rem">➔</button>
@@ -481,7 +476,7 @@ function logout() { localStorage.clear(); location.reload(); }
 
 function updateRelayUI() {
     const count = Object.values(relays).filter(r => r.status === 1).length;
-    document.getElementById('relayCount').innerText = `${count} Relays conectados`;
+    document.getElementById('relayCount').innerText = `${count} Relays`;
 }
 
 function startApp() {
@@ -986,11 +981,7 @@ async function deleteMsg() { if(!confirm('Apagar?')) return; await pub({ kind:5,
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function chatInfo() { if(activeChat.type==='group') showGroupInfo(activeChat); else showUserInfo(activeChat.id); }
-if ('caches' in window) {
-  caches.keys().then(keys =>
-    keys.forEach(k => caches.delete(k))
-  );
-}
+
 checkLogin();
 let deferredPrompt;
 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.querySelectorAll('.install-btn').forEach(btn => btn.classList.remove('hidden')); });

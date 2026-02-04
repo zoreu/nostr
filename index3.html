@@ -76,8 +76,7 @@
             scroll-behavior: smooth;
         }
 
-        .chat-input-area {
-            padding: 10px; background: var(--panel); border-top: 1px solid var(--border); flex-shrink: 0; width: 100%; }
+        .chat-input-area { padding: 10px; background: var(--panel); border-top: 1px solid var(--border); flex-shrink: 0; width: 100%; }
 
         /* Messages */
         .msg { max-width: 85%; display: flex; flex-direction: column; position: relative; animation: fadeIn 0.1s; }
@@ -93,34 +92,9 @@
         .msg-meta { font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-top: 3px; display: flex; gap: 5px; justify-content: flex-end; }
         .msg-name { font-size: 0.75rem; color: var(--cyan); font-weight: 700; cursor: pointer; margin-bottom: 2px; }
 
-        textarea {
-            width: 100%; background: #0003; border: 1px solid var(--border); border-radius: 20px;
-            padding: 12px 45px 12px 45px; color: #fff; resize: none; height: 48px; font-family: inherit; font-size: 0.95rem;
-        }
+        textarea { width: 100%; background: #0003; border: 1px solid var(--border); border-radius: 20px; padding: 12px 45px 12px 15px; color: #fff; resize: none; height: 48px; font-family: inherit; font-size: 0.95rem; }
         textarea:focus { outline: none; border-color: var(--accent); }
-
-        .send-btn { position: absolute; right: 8px; bottom: 8px; background: var(--cyan); border: none; width: 32px; height: 32px; border-radius: 50%; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; z-index: 5; }
-
-        /* Attachment Styles */
-        .attach-btn {
-            position: absolute; left: 8px; bottom: 8px; background: transparent; border: none;
-            width: 32px; height: 32px; color: var(--muted); cursor: pointer;
-            font-size: 1.2rem; display: flex; align-items: center; justify-content: center; z-index: 5;
-            transition: color 0.2s;
-        }
-        .attach-btn:hover { color: var(--cyan); }
-
-        /* Loading Feedback */
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .uploading-spinner {
-            width: 20px; height: 20px; border: 2px solid var(--cyan); border-top-color: transparent;
-            border-radius: 50%; animation: spin 0.8s linear infinite;
-            display: none; position: absolute; left: 14px; bottom: 14px; z-index: 10;
-        }
-
-        .uploading textarea { opacity: 0.5; pointer-events: none; }
-        .uploading .uploading-spinner { display: block; }
-        .uploading .attach-btn { display: none; }
+        .send-btn { position: absolute; right: 20px; bottom: 20px; background: var(--cyan); border: none; width: 32px; height: 32px; border-radius: 50%; color: #000; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 
         /* Utils & Modals */
         .hidden { display: none !important; }
@@ -147,38 +121,40 @@
         .key-box { background: #000; padding: 10px; border-radius: 8px; font-family: monospace; font-size: 0.75rem; word-break: break-all; margin: 10px 0; color: var(--cyan); border: 1px solid var(--border); user-select: all; cursor: pointer; }
 
         .install-btn { color: var(--cyan) !important; border: 1px solid var(--cyan) !important; }
-        aside,
-        section {
-        padding-bottom: 21%;
-        }        
     </style>
 </head>
 <body>
 
+<!-- LOGIN -->
 <div id="loginScreen" class="modal-bg">
     <div class="modal">
-        <h2>☖ Nostr PWA</h2>
+        <h2>⚡ Nostr PWA</h2>
         <p style="color:#aaa; font-size:0.9rem; margin-bottom:20px;">Criptografia ponta-a-ponta.</p>
         <button class="btn btn-p" onclick="generateAccount()">Criar Nova Conta</button>
         <div style="margin:15px 0; font-size:0.8rem; color:#666">OU</div>
         <input type="password" id="nsecInput" class="field" placeholder="Cole sua nsec aqui...">
         <button class="btn btn-s" onclick="loginKey()">Entrar com Chave</button>
-        <button class="btn btn-s install-btn hidden" onclick="installPWA()">➔ Instalar App</button>
+        <button class="btn btn-s install-btn hidden" onclick="installPWA()">📲 Instalar App</button>
     </div>
 </div>
 
+<!-- BACKUP MODAL -->
 <div id="backupModal" class="modal-bg hidden">
     <div class="modal">
-        <h3>☖ Salve suas Chaves</h3>
-        <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">Se voc perder essas chaves, perder o acesso  sua conta para sempre.</p>
-        <div style="text-align:left; font-size:0.7rem; color:#666">PRIVADA (NSEC) - NÃO MOSTRE A NINGUEM:</div>
+        <h3>🔒 Salve suas Chaves</h3>
+        <p style="font-size:0.8rem; color:#aaa; margin-bottom:10px;">Se você perder essas chaves, perderá o acesso à sua conta para sempre.</p>
+
+        <div style="text-align:left; font-size:0.7rem; color:#666">PRIVADA (NSEC) - NÃO MOSTRE A NINGUÉM:</div>
         <div id="outNsec" class="key-box" onclick="copyText(this.innerText)"></div>
+
         <div style="text-align:left; font-size:0.7rem; color:#666">PÚBLICA (NPUB):</div>
         <div id="outNpub" class="key-box" onclick="copyText(this.innerText)"></div>
+
         <button class="btn btn-p" onclick="confirmBackup()">Salvo, Entrar no App</button>
     </div>
 </div>
 
+<!-- CONTEXT MENU -->
 <div id="ctxMenu">
     <div class="ctx-opt" onclick="replyMsg()">↩️ Responder</div>
     <div class="ctx-opt" onclick="copyMsg()">📋 Copiar Texto</div>
@@ -192,23 +168,32 @@
             <div style="display:flex; justify-content:space-between; align-items:center; width:100%">
                 <div style="display:flex; gap:10px; align-items:center; cursor:pointer" onclick="openProfile()">
                     <div class="avatar" id="myAvatar">?</div>
-                    <div><div id="myName" style="font-weight:bold">Eu</div><div id="relayCount" class="relay-status">0 Relays conectados</div></div>
+                    <div><div id="myName" style="font-weight:bold">Eu</div><div id="relayCount" class="relay-status">0 Relays</div></div>
                 </div>
                 <div style="display:flex; gap:5px; align-items:center">
-                    <button class="install-btn hidden" onclick="installPWA()" style="background:none;border:none;cursor:pointer;font-size:1.2rem">➔</button>
+                    <button class="install-btn hidden" onclick="installPWA()" style="background:none;border:none;cursor:pointer;font-size:1.2rem">📲</button>
                     <button onclick="logout()" style="background:none;border:none;color:#f55;cursor:pointer;font-size:0.8rem">Sair</button>
                 </div>
             </div>
         </div>
+
         <div class="tabs">
             <button class="tab active" onclick="setTab('groups')">Grupos</button>
             <button class="tab" onclick="setTab('dms')">DMs</button>
             <button class="tab" onclick="setTab('friends')">Amigos</button>
         </div>
-        <div class="search-box"><input type="text" class="search" id="searchInp" placeholder="Buscar..." onkeyup="handleSearch()"></div>
+
+        <div class="search-box">
+            <input type="text" class="search" id="searchInp" placeholder="Buscar..." onkeyup="handleSearch()">
+        </div>
+
         <div id="listArea" class="list-container"></div>
-        <div style="padding:15px; border-top:1px solid var(--border)"><button id="btnSidebarAction" class="btn btn-p" style="margin:0" onclick="openModal('createGroupModal')">+ Criar Grupo</button></div>
+
+        <div style="padding:15px; border-top:1px solid var(--border)">
+            <button id="btnSidebarAction" class="btn btn-p" style="margin:0" onclick="openModal('createGroupModal')">+ Criar Grupo</button>
+        </div>
     </aside>
+
     <section id="chatView" class="hidden">
         <div class="chat-top">
             <button onclick="closeChat()" style="background:none;border:none;color:#fff;font-size:1.5rem;margin-right:10px;display:none;" id="backBtn">←</button>
@@ -218,16 +203,17 @@
                 <div style="font-size:0.75rem;color:#aaa" id="chatSub">Info</div>
             </div>
         </div>
-        <div class="chat-scroll" id="msgs"><div style="text-align:center; padding:20px; color:#555">Carregando mensagens...</div></div>
+
+        <div class="chat-scroll" id="msgs">
+            <div style="text-align:center; padding:20px; color:#555">Carregando mensagens...</div>
+        </div>
+
         <div class="chat-input-area">
             <div id="replyBar" class="hidden" style="background:#222; padding:8px; margin-bottom:8px; border-radius:6px; border-left:3px solid var(--cyan); font-size:0.8rem; display:flex; justify-content:space-between;">
                 <span style="color:#ddd">Respondendo...</span>
-                <span onclick="cancelReply()" style="cursor:pointer">☖</span>
+                <span onclick="cancelReply()" style="cursor:pointer">✕</span>
             </div>
-            <div style="position:relative" id="inputContainer">
-                <div class="uploading-spinner"></div>
-                <input type="file" id="fileInp" class="hidden" onchange="handleFileSelect(this)">
-                <button class="attach-btn" onclick="document.getElementById('fileInp').click()">📎</button>
+            <div style="position:relative">
                 <textarea id="msgInp" placeholder="Mensagem..." onkeydown="handleEnter(event)"></textarea>
                 <button class="send-btn" onclick="onclickSend()">➤</button>
             </div>
@@ -235,6 +221,7 @@
     </section>
 </main>
 
+<!-- MODALS -->
 <div id="createGroupModal" class="modal-bg hidden">
     <div class="modal">
         <h3>Novo Grupo</h3>
@@ -252,7 +239,7 @@
         <h3>Editar Grupo</h3>
         <input id="editGName" class="field" placeholder="Nome do Grupo">
         <input id="editGImg" class="field" placeholder="URL da Imagem">
-        <textarea id="editGDesc" class="field" placeholder="Descrio" rows="2"></textarea>
+        <textarea id="editGDesc" class="field" placeholder="Descrição" rows="2"></textarea>
         <textarea id="editGRules" class="field" placeholder="Regras do Grupo" rows="3"></textarea>
         <button class="btn btn-p" onclick="doUpdateGroup()">Salvar Alterações</button>
         <button class="btn btn-s" onclick="closeModal('editGroupModal')">Cancelar</button>
@@ -278,7 +265,7 @@
         </div>
         <button class="btn btn-p" id="btnJoin" onclick="joinCurrent()">Entrar</button>
         <button class="btn btn-d hidden" id="btnLeave" onclick="leaveCurrent()">Sair</button>
-        <button class="btn btn-s hidden" id="btnEditGroup" onclick="openEditGroup()">☖ Editar Grupo</button>
+        <button class="btn btn-s hidden" id="btnEditGroup" onclick="openEditGroup()">⚙️ Editar Grupo</button>
         <button class="btn btn-s" onclick="closeModal('groupInfoModal')">Fechar</button>
     </div>
 </div>
@@ -292,6 +279,9 @@
 </div>
 
 <script>
+// ==========================================
+// CRIPTOGRAFIA COMPLETA (BIP-340 / Nostr)
+// ==========================================
 const Crypto = (() => {
     const P = 0xfffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2fn;
     const N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141n;
@@ -365,10 +355,11 @@ const Crypto = (() => {
 
     function getPub(priv) { return bigToHex(ptMul(hexToBig(priv), [Gx, Gy])[0]); }
 
+    // NIP-04 ECDH
     async function getSharedSecret(priv, pub) {
         let x = hexToBig(pub);
         let y2 = mod(x*x*x + 7n);
-        let y = pow(y2, (P+1n)/4n);
+        let y = pow(y2, (P+1n)/4n); // Guess Y
         let S = ptMul(hexToBig(priv), [x, y]);
         return hexToBytes(bigToHex(S[0]));
     }
@@ -396,6 +387,7 @@ const Crypto = (() => {
         } catch { return "[Cripto Error]"; }
     }
 
+    // Bech32
     const ABC = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
     function bech32Dec(str) {
         str = str.toLowerCase(); let pos = str.lastIndexOf('1');
@@ -410,6 +402,7 @@ const Crypto = (() => {
         for (let v of bytes) { acc = (acc << 8) | v; bits += 8; while (bits >= 5) { bits -= 5; out.push((acc >> bits) & 0x1f); } }
         if (bits > 0) out.push((acc << (5 - bits)) & 0x1f);
         let data = out.map(v => ABC[v]).join('');
+        // Dummy checksum calculation for Nostr backup display
         let check = "aaaaaa";
         return hrp + "1" + data + check;
     }
@@ -417,6 +410,9 @@ const Crypto = (() => {
     return { sign, getPub, encrypt, decrypt, bech32Dec, bech32Enc, hexToBytes, bytesToHex, sha256 };
 })();
 
+// ==========================================
+// APP LOGIC
+// ==========================================
 const RELAYS = [
     'wss://purplepag.es', 'wss://relay.snort.social', 'wss://relay.damus.io',
     'wss://nos.lol', 'wss://relay.primal.net', 'wss://nostr.oxtr.dev', 'wss://communities.nos.social', 'wss://nostr.mom',
@@ -438,6 +434,7 @@ let initialLoaded = false;
 let selectedUser = null;
 let tempPriv = null;
 
+// --- START ---
 function checkLogin() {
     const s = localStorage.getItem('nostr_pwa');
     if (s) {
@@ -452,9 +449,11 @@ function generateAccount() {
     const priv = new Uint8Array(32); crypto.getRandomValues(priv);
     const hex = Crypto.bytesToHex(priv);
     const pub = Crypto.getPub(hex);
+
     tempPriv = hex;
     document.getElementById('outNsec').innerText = Crypto.bech32Enc('nsec', priv);
     document.getElementById('outNpub').innerText = Crypto.bech32Enc('npub', Crypto.hexToBytes(pub));
+
     openModal('backupModal');
 }
 
@@ -481,7 +480,7 @@ function logout() { localStorage.clear(); location.reload(); }
 
 function updateRelayUI() {
     const count = Object.values(relays).filter(r => r.status === 1).length;
-    document.getElementById('relayCount').innerText = `${count} Relays conectados`;
+    document.getElementById('relayCount').innerText = `${count} Relays`;
 }
 
 function startApp() {
@@ -492,6 +491,7 @@ function startApp() {
             relays[url] = { ws, status: 0 };
             ws.onopen = () => {
                 relays[url].status = 1;
+                console.log('conectado ao relay: ' + url);
                 updateRelayUI();
                 if (!initialLoaded) {
                     initialLoaded = true;
@@ -525,60 +525,7 @@ async function pub(ev) {
     return ev;
 }
 
-async function getNip98Header(url, method) {
-    const ev = {
-        kind: 27235,
-        created_at: Math.floor(Date.now() / 1000),
-        content: "",
-        pubkey: user.pub,
-        tags: [['u', url], ['method', method]]
-    };
-    const ser = JSON.stringify([0, ev.pubkey, ev.created_at, ev.kind, ev.tags, ev.content]);
-    const hash = Crypto.bytesToHex(await Crypto.sha256(new TextEncoder().encode(ser)));
-    ev.id = hash;
-    ev.sig = await Crypto.sign(user.priv, hash);
-    const base64 = btoa(unescape(encodeURIComponent(JSON.stringify(ev))));
-    return 'Nostr ' + base64;
-}
-
-async function handleFileSelect(input) {
-    if (!input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const container = document.getElementById('inputContainer');
-    container.classList.add('uploading');
-
-    try {
-        const formData = new FormData();
-        formData.append('file[]', file);
-
-        const url = 'https://nostr.build/api/v2/upload/files';
-        const auth = await getNip98Header(url, 'POST');
-
-        const res = await fetch(url, {
-            method: 'POST',
-            body: formData,
-            headers: { 'Authorization': auth }
-        });
-
-        if (!res.ok) throw new Error("Upload failed");
-
-        const data = await res.json();
-        if (data.data && data.data[0] && data.data[0].url) {
-            const mediaUrl = data.data[0].url;
-            const msgInp = document.getElementById('msgInp');
-            msgInp.value += (msgInp.value ? '\n' : '') + mediaUrl;
-        } else {
-            throw new Error("Invalid response from server");
-        }
-    } catch (e) {
-        console.error(e);
-        alert('Erro no upload: ' + e.message);
-    } finally {
-        container.classList.remove('uploading');
-        input.value = '';
-    }
-}
-
+// --- HANDLER ---
 async function handleMsg([type, id, ev]) {
     if (type === 'EVENT') {
         if (ev.kind === 0) {
@@ -590,6 +537,7 @@ async function handleMsg([type, id, ev]) {
             }
             updateListUI();
             if (activeChat) renderHeader();
+            // Refresh messages if they contain this pubkey
             if (activeChat && chatBuffer.some(m => m.pubkey === ev.pubkey)) renderBuffer();
         }
         else if (ev.kind === 3) {
@@ -624,10 +572,13 @@ async function handleMsg([type, id, ev]) {
                 data.groups[idx] = { ...data.groups[idx], ...meta };
                 updateListUI();
             }
-            if (activeChat && activeChat.full === meta.full) renderHeader();
+            if (activeChat && activeChat.full === meta.full) {
+                renderHeader();
+            }
             if (id === 'search') renderSearchItem(meta);
         }
         else if (ev.kind === 4) {
+            // Process global Kind 4 for DM threads
             const isForMe = ev.tags.find(t => t[0] === 'p' && t[1] === user.pub);
             const isByMe = ev.pubkey === user.pub;
             if (isForMe || isByMe) {
@@ -681,6 +632,7 @@ function loadInitialData() {
     sub({ kinds: [4], '#p': [user.pub] }, 'initial-dms');
 }
 
+// --- UI LISTS ---
 function setTab(t) {
     currentTab = t;
     document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
@@ -699,12 +651,14 @@ function setTab(t) {
         sideBtn.innerText = '+ Nova Conversa';
         sideBtn.onclick = () => openModal('addFriendModal');
     }
+
     updateListUI();
 }
 
 function updateListUI() {
     const list = document.getElementById('listArea');
     if (document.getElementById('searchInp').value) return;
+
     list.innerHTML = '';
     if (currentTab === 'groups') {
         if (data.groups.length === 0) { list.innerHTML = '<div style="text-align:center;padding:20px;color:#555">Sem grupos.</div>'; return; }
@@ -754,6 +708,7 @@ function renderSearchItem(meta) {
     list.appendChild(el);
 }
 
+// --- CHAT ---
 function openChat(id, type) {
     if (type === 'group') {
         const g = data.groups.find(x => x.full === id);
@@ -761,39 +716,60 @@ function openChat(id, type) {
     } else {
         activeChat = { id, type };
     }
+
     chatBuffer = [];
     document.getElementById('app').classList.add('view-chat');
     document.getElementById('chatView').classList.remove('hidden');
     document.getElementById('msgs').innerHTML = '<div style="text-align:center;padding:20px;color:#555">Sincronizando...</div>';
+
     renderHeader();
     if (activeSub) sub({}, 'close-' + activeSub);
     activeSub = Math.random().toString();
-    if (type === 'group') sub({ kinds: [1, 5], '#a': [activeChat.full], limit: 50 }, activeSub);
-    else sub({ kinds: [4], authors: [user.pub, id], '#p': [id, user.pub], limit: 50 }, activeSub);
+
+    if (type === 'group') {
+        sub({ kinds: [1, 5], '#a': [activeChat.full], limit: 50 }, activeSub);
+    } else {
+        sub({ kinds: [4], authors: [user.pub, id], '#p': [id, user.pub], limit: 50 }, activeSub);
+    }
 }
 
 function renderHeader() {
     let p, isG = activeChat.type === 'group';
-    if (isG) p = data.groups.find(g => g.full === activeChat.full) || activeChat;
-    else p = data.profiles[activeChat.id] || { name: activeChat.id.slice(0,8) };
+    if (isG) {
+        p = data.groups.find(g => g.full === activeChat.full) || activeChat;
+    } else {
+        p = data.profiles[activeChat.id] || { name: activeChat.id.slice(0,8) };
+    }
+
     document.getElementById('chatTitle').innerText = p.name || p.display_name || p.id?.slice(0,8) || 'Chat';
     document.getElementById('chatSub').innerText = isG ? 'Grupo' : 'Privado';
+
     const img = isG ? p.image : p.picture;
     document.getElementById('chatAvatar').innerHTML = img ? `<img src="${img}">` : (isG ? '#' : '?');
 }
 
-function closeChat() { activeChat = null; document.getElementById('app').classList.remove('view-chat'); }
+function closeChat() {
+    activeChat = null;
+    document.getElementById('app').classList.remove('view-chat');
+}
 
 async function appendMsg(ev) {
-    let content = ev.content, isLock = false;
-    if (ev.kind === 4) { content = await Crypto.decrypt(user.priv, activeChat.id, ev.content); isLock = true; }
+    let content = ev.content;
+    let isLock = false;
+    if (ev.kind === 4) {
+        content = await Crypto.decrypt(user.priv, activeChat.id, ev.content);
+        isLock = true;
+    }
+
     const isMe = ev.pubkey === user.pub;
     const div = document.createElement('div');
     div.className = `msg ${isMe ? 'me' : 'other'}`;
+
     const p = data.profiles[ev.pubkey] || { name: ev.pubkey.slice(0, 6) };
     const name = isMe ? 'Você' : (p.name || p.display_name || ev.pubkey.slice(0, 6));
     const rep = ev.tags.find(t=>t[0]==='e');
     const repHtml = rep ? `<div style="font-size:0.7rem;opacity:0.7;border-left:2px solid var(--cyan);padding-left:5px;margin-bottom:3px">Resposta</div>` : '';
+
     div.innerHTML = `
         <div class="msg-content" id="${ev.id}" oncontextmenu="ctx(event, '${ev.id}', '${ev.pubkey}', '${escape(content)}')">
             ${repHtml}
@@ -802,154 +778,165 @@ async function appendMsg(ev) {
             <div class="msg-meta">${isLock ? '🔒' : ''} ${new Date(ev.created_at * 1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
         </div>
     `;
+
     document.getElementById('msgs').appendChild(div);
 }
 
 function format(txt) {
-  txt = txt
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
-
-  return txt.replace(/(https?:\/\/[^\s]+)/g, u => {
-    const link = `<a href="${u}" target="_blank" rel="noopener" style="color:var(--cyan); word-break: break-all;">${u}</a>`;
-
-    // ÁUDIO SUPORTADO NO CHROME
-    if (u.match(/\.(mp3)$/i)) {
-      return `${link}<br>
-        <audio controls style="width:100%; margin-top:5px;">
-          <source src="${u}" type="audio/mpeg">
-        </audio><br>`;
-    }
-
-    if (u.match(/\.(ogg)$/i)) {
-      return `${link}<br>
-        <audio controls style="width:100%; margin-top:5px;">
-          <source src="${u}" type="audio/ogg">
-        </audio><br>`;
-    }
-
-    if (u.match(/\.(wav)$/i)) {
-      return `${link}<br>
-        <audio controls style="width:100%; margin-top:5px;">
-          <source src="${u}" type="audio/wav">
-        </audio><br>`;
-    }
-
-    // WMA → só link (Chrome não toca)
-    if (u.match(/\.(wma)$/i)) {
-      return `${link}<br><small>⚠️ WMA não é suportado pelo navegador</small><br>`;
-    }
-
-    // IMAGENS
-    if (u.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
-      return `${link}<br>
-        <img src="${u}" style="max-width:100%; border-radius:10px; margin-top:5px;"><br>`;
-    }
-
-    // VÍDEOS
-    if (u.match(/\.(mp4|webm)$/i)) {
-      return `${link}<br>
-        <video src="${u}" controls style="max-width:100%; border-radius:10px; margin-top:5px;"></video><br>`;
-    }
-
-    // YOUTUBE
-    const ytMatch = u.match(
-      /(?:youtube\.com\/(?:.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i
-    );
-
-    if (ytMatch) {
-      const vid = ytMatch[1];
-      return `${link}<br>
-        <iframe width="100%" height="200"
-          src="https://www.youtube.com/embed/${vid}"
-          frameborder="0"
-          allowfullscreen
-          style="border-radius:10px; margin-top:5px;">
-        </iframe><br>`;
-    }
-
-    return link;
-  });
+    txt = txt.replace(/</g, '&lt;');
+    return txt.replace(/(https?:\/\/[^\s]+)/g, u => {
+        const link = `<a href="${u}" target="_blank" style="color:var(--cyan); word-break: break-all;">${u}</a>`;
+        if(u.match(/\.(jpg|jpeg|png|gif|webp)$/i)) return `${link}<br><img src="${u}" style="max-width:100%; border-radius:10px; margin-top:5px;"><br>`;
+        if(u.match(/\.(mp4|webm|ogg)$/i)) return `${link}<br><video src="${u}" controls style="max-width:100%; border-radius:10px; margin-top:5px;"></video><br>`;
+        const ytMatch = u.match(/(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/i);
+        if (ytMatch) {
+            const vid = ytMatch[1];
+            return `${link}<br><iframe width="100%" height="200" src="https://www.youtube.com/embed/${vid}" frameborder="0" allowfullscreen style="border-radius:10px; margin-top:5px;"></iframe><br>`;
+        }
+        return link;
+    });
 }
-
 function escape(s) { return s.replace(/'/g, "\\'"); }
 
+// --- ACTIONS ---
 async function onclickSend() {
     const txt = document.getElementById('msgInp').value.trim();
     if (!txt || !activeChat) return;
+
     const ev = { content: txt, tags: [] };
     if(replyId) { ev.tags.push(['e', replyId, '', 'reply']); cancelReply(); }
-    if (activeChat.type === 'group') { ev.kind = 1; ev.tags.push(['a', activeChat.full, '', 'root']); ev.tags.push(['p', activeChat.host]); }
-    else { ev.kind = 4; ev.tags.push(['p', activeChat.id]); ev.content = await Crypto.encrypt(user.priv, activeChat.id, txt); }
+
+    if (activeChat.type === 'group') {
+        ev.kind = 1;
+        ev.tags.push(['a', activeChat.full, '', 'root']);
+        ev.tags.push(['p', activeChat.host]);
+    } else {
+        ev.kind = 4;
+        ev.tags.push(['p', activeChat.id]);
+        ev.content = await Crypto.encrypt(user.priv, activeChat.id, txt);
+    }
+
     const signed = await pub(ev);
     document.getElementById('msgInp').value = '';
     if(ev.kind === 4) signed.content = txt;
     addToBuffer(signed);
-    setTimeout(() => { const box = document.getElementById('msgs'); box.scrollTop = box.scrollHeight; }, 100);
+
+    // Force scroll after sending
+    setTimeout(() => {
+        const box = document.getElementById('msgs');
+        box.scrollTop = box.scrollHeight;
+    }, 100);
 }
 
-function handleEnter(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onclickSend(); } }
+function handleEnter(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        onclickSend();
+    }
+}
 
+// --- GROUPS ---
 let selectedGroup = null;
 function showGroupInfo(meta) {
-    selectedGroup = meta; const isMem = data.groups.find(g => g.full === meta.full);
-    document.getElementById('gName').innerText = meta.name; document.getElementById('gDesc').innerText = meta.desc || '';
+    selectedGroup = meta;
+    const isMem = data.groups.find(g => g.full === meta.full);
+    document.getElementById('gName').innerText = meta.name;
+    document.getElementById('gDesc').innerText = meta.desc || '';
     document.getElementById('gRules').innerText = meta.rules || 'Sem regras definidas.';
     if(meta.image) document.getElementById('gInfoAv').innerHTML = `<img src="${meta.image}">`;
-    document.getElementById('btnJoin').classList.toggle('hidden', !!isMem); document.getElementById('btnLeave').classList.toggle('hidden', !isMem);
-    document.getElementById('btnEditGroup').classList.toggle('hidden', meta.host !== user.pub); openModal('groupInfoModal');
+
+    document.getElementById('btnJoin').classList.toggle('hidden', !!isMem);
+    document.getElementById('btnLeave').classList.toggle('hidden', !isMem);
+    document.getElementById('btnEditGroup').classList.toggle('hidden', meta.host !== user.pub);
+    openModal('groupInfoModal');
 }
 
 async function joinCurrent() {
-    myGroupTags = myGroupTags.filter(t => t[1] !== selectedGroup.full); myGroupTags.push(['a', selectedGroup.full]);
+    myGroupTags = myGroupTags.filter(t => t[1] !== selectedGroup.full);
+    myGroupTags.push(['a', selectedGroup.full]);
     if(!myGroupTags.find(t=>t[0]==='d')) myGroupTags.unshift(['d', 'groups']);
+
     await pub({ kind: 10004, tags: myGroupTags, content: '' });
+
     if(!data.groups.find(g=>g.full === selectedGroup.full)) data.groups.push(selectedGroup);
-    closeModal('groupInfoModal'); setTab('groups');
+    closeModal('groupInfoModal');
+    setTab('groups');
 }
 
 async function leaveCurrent() {
-    myGroupTags = myGroupTags.filter(t => t[1] !== selectedGroup.full); await pub({ kind: 10004, tags: myGroupTags, content: '' });
-    data.groups = data.groups.filter(g => g.full !== selectedGroup.full); const el = document.getElementById('li-' + selectedGroup.full); if(el) el.remove();
+    myGroupTags = myGroupTags.filter(t => t[1] !== selectedGroup.full);
+    await pub({ kind: 10004, tags: myGroupTags, content: '' });
+    data.groups = data.groups.filter(g => g.full !== selectedGroup.full);
+    const el = document.getElementById('li-' + selectedGroup.full); if(el) el.remove();
     closeModal('groupInfoModal');
 }
 
 async function doCreateGroup() {
-    const name = document.getElementById('newGName').value, d = name.toLowerCase().replace(/\s/g, '-');
+    const name = document.getElementById('newGName').value;
+    const d = name.toLowerCase().replace(/\s/g, '-');
     const tags = [['d', d], ['name', name], ['image', document.getElementById('newGImg').value], ['description', document.getElementById('newGDesc').value], ['rules', document.getElementById('newGRules').value]];
-    await pub({ kind: 34550, tags, content: '' }); selectedGroup = { full: `34550:${user.pub}:${d}`, name };
-    await joinCurrent(); closeModal('createGroupModal');
+    await pub({ kind: 34550, tags, content: '' });
+    selectedGroup = { full: `34550:${user.pub}:${d}`, name };
+    await joinCurrent();
+    closeModal('createGroupModal');
 }
 
 function openEditGroup() {
-    const g = selectedGroup; document.getElementById('editGName').value = g.name || ''; document.getElementById('editGImg').value = g.image || '';
-    document.getElementById('editGDesc').value = g.desc || ''; document.getElementById('editGRules').value = g.rules || '';
-    closeModal('groupInfoModal'); openModal('editGroupModal');
+    const g = selectedGroup;
+    document.getElementById('editGName').value = g.name || '';
+    document.getElementById('editGImg').value = g.image || '';
+    document.getElementById('editGDesc').value = g.desc || '';
+    document.getElementById('editGRules').value = g.rules || '';
+    closeModal('groupInfoModal');
+    openModal('editGroupModal');
 }
 
 async function doUpdateGroup() {
-    const name = document.getElementById('editGName').value, img = document.getElementById('editGImg').value, desc = document.getElementById('editGDesc').value, rules = document.getElementById('editGRules').value;
-    const tags = [['d', selectedGroup.id], ['name', name], ['image', img], ['description', desc], ['rules', rules]];
+    const name = document.getElementById('editGName').value;
+    const img = document.getElementById('editGImg').value;
+    const desc = document.getElementById('editGDesc').value;
+    const rules = document.getElementById('editGRules').value;
+
+    const tags = [
+        ['d', selectedGroup.id],
+        ['name', name],
+        ['image', img],
+        ['description', desc],
+        ['rules', rules]
+    ];
+
     await pub({ kind: 34550, tags, content: '' });
+
+    // Local update
     const meta = { ...selectedGroup, name, image: img, desc, rules };
-    const idx = data.groups.findIndex(g => g.full === meta.full); if (idx >= 0) data.groups[idx] = meta;
-    closeModal('editGroupModal'); updateListUI(); if (activeChat && activeChat.full === meta.full) renderHeader();
+    const idx = data.groups.findIndex(g => g.full === meta.full);
+    if (idx >= 0) data.groups[idx] = meta;
+
+    closeModal('editGroupModal');
+    updateListUI();
+    if (activeChat && activeChat.full === meta.full) renderHeader();
 }
 
 async function doAddFriend() {
-    let val = document.getElementById('friendKeyInput').value.trim(); if (!val) return;
+    let val = document.getElementById('friendKeyInput').value.trim();
+    if (!val) return;
     try {
         if (val.startsWith('npub')) val = Crypto.bytesToHex(Crypto.bech32Dec(val).data);
         if (val.length !== 64) throw "Inválido";
-        data.friends.add(val); const tags = Array.from(data.friends).map(p => ['p', p]); await pub({ kind: 3, tags, content: '' });
-        closeModal('addFriendModal'); document.getElementById('friendKeyInput').value = ''; updateListUI();
+
+        data.friends.add(val);
+        const tags = Array.from(data.friends).map(p => ['p', p]);
+        await pub({ kind: 3, tags, content: '' });
+        closeModal('addFriendModal');
+        document.getElementById('friendKeyInput').value = '';
+        updateListUI();
         sub({ kinds: [0], authors: [val], limit: 1 }, 'profile-' + val);
     } catch(e) { alert('Chave inválida. Use npub... ou hex de 64 caracteres.'); }
 }
 
 function showUserInfo(pk) {
-  selectedUser = pk; const p = data.profiles[pk] || { name: pk.slice(0, 8) };
+  selectedUser = pk;
+  const p = data.profiles[pk] || { name: pk.slice(0, 8) };
   document.getElementById('uName').innerText = p.name || p.display_name || pk.slice(0, 8);
   document.getElementById('uAv').innerHTML = p.picture ? `<img src="${p.picture}">` : '👤';
   document.getElementById('btnAddF').innerText = data.friends.has(pk) ? 'Remover Amigo' : 'Adicionar Amigo';
@@ -957,45 +944,101 @@ function showUserInfo(pk) {
 }
 
 async function toggleFriend() {
-    if (data.friends.has(selectedUser)) data.friends.delete(selectedUser); else data.friends.add(selectedUser);
-    const tags = Array.from(data.friends).map(p => ['p', p]); await pub({ kind: 3, tags, content: '' });
-    closeModal('userInfoModal'); updateListUI();
+    if (data.friends.has(selectedUser)) data.friends.delete(selectedUser);
+    else data.friends.add(selectedUser);
+    const tags = Array.from(data.friends).map(p => ['p', p]);
+    await pub({ kind: 3, tags, content: '' });
+    closeModal('userInfoModal');
+    updateListUI();
 }
 
-function startDM() { if (!selectedUser) return; closeModal('userInfoModal'); openChat(selectedUser, 'dm'); }
+function startDM() {
+    if (!selectedUser) return;
+    closeModal('userInfoModal');
+    openChat(selectedUser, 'dm');
+}
+
 function openProfile() { openModal('profileModal'); }
-async function saveProfile() { const c = { name: document.getElementById('pName').value, about: document.getElementById('pAbout').value, picture: document.getElementById('pPic').value }; await pub({ kind: 0, content: JSON.stringify(c) }); closeModal('profileModal'); }
+async function saveProfile() {
+    const c = { name: document.getElementById('pName').value, about: document.getElementById('pAbout').value, picture: document.getElementById('pPic').value };
+    await pub({ kind: 0, content: JSON.stringify(c) });
+    closeModal('profileModal');
+}
 function updateProfileUI() { sub({ kinds: [0], authors: [user.pub], limit: 1 }); }
 
 function ctx(e, id, pub, txt) {
-    e.preventDefault(); ctxData = { id, pub, txt }; const m = document.getElementById('ctxMenu'), bubble = document.getElementById(id), rect = bubble.getBoundingClientRect();
-    m.style.display = 'block'; let x = rect.left, y = rect.top;
+    e.preventDefault();
+    ctxData = { id, pub, txt };
+    const m = document.getElementById('ctxMenu');
+    const bubble = document.getElementById(id);
+    const rect = bubble.getBoundingClientRect();
+
+    m.style.display = 'block';
+
+    // Position logic: always anchor to the bubble to avoid mouse position variability
+    let x = rect.left;
+    let y = rect.top;
+
+    // Screen boundary checks
     if (x + 180 > window.innerWidth) x = window.innerWidth - 190;
     if (y + 150 > window.innerHeight) y = window.innerHeight - 160;
-    m.style.left = x + 'px'; m.style.top = y + 'px';
-    const isOwner = pub === user.pub, isAdm = activeChat?.host === user.pub;
+    if (x < 10) x = 10;
+    if (y < 10) y = 10;
+
+    m.style.left = x + 'px';
+    m.style.top = y + 'px';
+
+    const isOwner = pub === user.pub;
+    const isAdm = activeChat?.host === user.pub;
     document.getElementById('ctxBan').style.display = isAdm ? 'block' : 'none';
     document.getElementById('ctxDel').style.display = (isOwner || isAdm) ? 'block' : 'none';
-    setTimeout(() => { document.addEventListener('click', function handler() { m.style.display = 'none'; document.removeEventListener('click', handler); }); }, 10);
+
+    setTimeout(() => {
+        document.addEventListener('click', function handler() {
+            m.style.display = 'none';
+            document.removeEventListener('click', handler);
+        });
+    }, 10);
 }
 function replyMsg() { replyId = ctxData.id; document.getElementById('replyBar').classList.remove('hidden'); document.getElementById('msgInp').focus(); }
 function cancelReply() { replyId=null; document.getElementById('replyBar').classList.add('hidden'); }
 function copyMsg() { navigator.clipboard.writeText(ctxData.txt); }
 function copyText(txt) { navigator.clipboard.writeText(txt); alert('Copiado!'); }
-async function deleteMsg() { if(!confirm('Apagar?')) return; await pub({ kind:5, tags:[['e', ctxData.id]], content:'' }); chatBuffer = chatBuffer.filter(m => m.id !== ctxData.id); renderBuffer(); }
+async function deleteMsg() {
+  if(!confirm('Apagar?')) return;
+  await pub({ kind:5, tags:[['e', ctxData.id]], content:'' });
+  chatBuffer = chatBuffer.filter(m => m.id !== ctxData.id);
+  renderBuffer();
+}
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function chatInfo() { if(activeChat.type==='group') showGroupInfo(activeChat); else showUserInfo(activeChat.id); }
-if ('caches' in window) {
-  caches.keys().then(keys =>
-    keys.forEach(k => caches.delete(k))
-  );
-}
+
 checkLogin();
+
+// PWA Installation Handlers
 let deferredPrompt;
-window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; document.querySelectorAll('.install-btn').forEach(btn => btn.classList.remove('hidden')); });
-async function installPWA() { if (!deferredPrompt) return; deferredPrompt.prompt(); const { outcome } = await deferredPrompt.userChoice; if (outcome === 'accepted') { deferredPrompt = null; document.querySelectorAll('.install-btn').forEach(btn => btn.classList.add('hidden')); } }
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    document.querySelectorAll('.install-btn').forEach(btn => btn.classList.remove('hidden'));
+});
+
+async function installPWA() {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+        deferredPrompt = null;
+        document.querySelectorAll('.install-btn').forEach(btn => btn.classList.add('hidden'));
+    }
+}
+
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').then(() => {
+        console.log("Service Worker Registered");
+    });
+}
 </script>
 </body>
 </html>
