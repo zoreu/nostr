@@ -415,8 +415,10 @@ const Crypto = (() => {
 // ==========================================
 const RELAYS = [
     'wss://purplepag.es', 'wss://relay.snort.social', 'wss://relay.damus.io',
-    'wss://nos.lol', 'wss://relay.primal.net', 'wss://nostr.oxtr.dev',
-    'wss://nostr.wine', 'wss://communities.nos.social', 'wss://nostr.mom', 'wss://relay.nostr.band'
+    'wss://nos.lol', 'wss://relay.primal.net', 'wss://nostr.oxtr.dev', 'wss://communities.nos.social', 'wss://nostr.mom',
+    'wss://relay.nostr.net', 'wss://lightningrelay.com', 'wss://at.nostrworks.com', 'wss://btc.klendazu.com', 'wss://no.str.cr',
+    'wss://nostr.noones.com', 'wss://nostr.semisol.dev', 'wss://relay.nostr.nu', 'wss://relay.ryzizub.com', 'wss://nostr-relay.bitcoin.ninja',
+    'wss://nostr.sectiontwo.org'
 ];
 let user = null;
 let relays = {};
@@ -489,6 +491,7 @@ function startApp() {
             relays[url] = { ws, status: 0 };
             ws.onopen = () => {
                 relays[url].status = 1;
+                console.log('conectado ao relay: ' + url);
                 updateRelayUI();
                 if (!initialLoaded) {
                     initialLoaded = true;
