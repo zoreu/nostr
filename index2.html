@@ -62,7 +62,7 @@
         .list-container { flex: 1; overflow-y: auto; padding: 5px; min-height: 0; }
         .list-item { display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 8px; cursor: pointer; transition: 0.2s; }
         .list-item:hover { background: rgba(255,255,255,0.05); }
-        .list-item.active { background: rgba(124, 58, 237, 0.1); border-left: 3px solid var(--accent); } 
+        .list-item.active { background: rgba(124, 58, 237, 0.1); border-left: 3px solid var(--accent); }
         .list-item .info { flex: 1; overflow: hidden; }
         .list-item .title { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .list-item .sub { font-size: 0.8rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -161,7 +161,7 @@
             .samsung-browser section {
                 padding-bottom: 23%;
             }
-        }
+        }        
 
         /* PWA */
         /* @media (display-mode: standalone) {
@@ -176,7 +176,7 @@
             section {
                 padding-bottom: max(5%, 6vh, env(safe-area-inset-bottom));
             }
-        }
+        }        
     </style>
 </head>
 <body>
@@ -208,7 +208,6 @@
 <div id="ctxMenu">
     <div class="ctx-opt" onclick="replyMsg()">↩️ Responder</div>
     <div class="ctx-opt" onclick="copyMsg()">📋 Copiar Texto</div>
-    <div class="ctx-opt" id="ctxFriend" onclick="handleCtxFriend()">👤 Adicionar Amigo</div>
     <div class="ctx-opt" id="ctxBan" onclick="banUser()" style="display:none; color:#f88">🚫 Banir (Admin)</div>
     <div class="ctx-opt" id="ctxDel" onclick="deleteMsg()" style="color:#f88">🗑 Apagar</div>
 </div>
@@ -617,13 +616,13 @@ async function handleMsg([type, id, ev]) {
             }
             updateListUI();
             if (activeChat) renderHeader();
-            if (activeChat && chatBuffer.some(m => m.pubkey === ev.pubkey)) await renderBuffer();
+            if (activeChat && chatBuffer.some(m => m.pubkey === ev.pubkey)) renderBuffer();
         }
-        else if (ev.kind === 3 && ev.pubkey === user.pub) {
-            data.friends = new Set(ev.tags.filter(t => t[0] === 'p' && t[1] !== user.pub).map(t => t[1]));
+        else if (ev.kind === 3) {
+            data.friends = new Set(ev.tags.filter(t => t[0] === 'p').map(t => t[1]));
             updateListUI();
         }
-        else if (ev.kind === 10004 && ev.pubkey === user.pub) {
+        else if (ev.kind === 10004) {
             myGroupTags = ev.tags;
             const groupRefs = ev.tags.filter(t => t[0] === 'a').map(t => {
                 const parts = t[1].split(':');
@@ -667,13 +666,13 @@ async function handleMsg([type, id, ev]) {
             }
             if (activeChat && activeChat.type === 'dm') {
                 if (ev.pubkey === activeChat.id || (isByMe && ev.tags.find(t => t[0] === 'p')[1] === activeChat.id)) {
-                    await addToBuffer(ev);
+                    addToBuffer(ev);
                 }
             }
         }
         else if (ev.kind === 1 && activeChat && activeChat.type === 'group') {
             if (ev.tags.find(t=>t[0]==='a')?.[1] === activeChat.full) {
-                await addToBuffer(ev);
+                addToBuffer(ev);
                 if (!data.profiles[ev.pubkey]) sub({ kinds: [0], authors: [ev.pubkey], limit: 1 }, 'profile-' + ev.pubkey);
             }
         }
@@ -682,46 +681,24 @@ async function handleMsg([type, id, ev]) {
             if (target) {
                 const lenBefore = chatBuffer.length;
                 chatBuffer = chatBuffer.filter(m => m.id !== target);
-                if (chatBuffer.length !== lenBefore) await renderBuffer();
+                if (chatBuffer.length !== lenBefore) renderBuffer();
             }
         }
     }
 }
 
-async function addToBuffer(ev) {
+function addToBuffer(ev) {
     if (chatBuffer.find(e => e.id === ev.id)) return;
     chatBuffer.push(ev);
     chatBuffer.sort((a, b) => a.created_at - b.created_at);
-    await renderBuffer();
+    renderBuffer();
 }
 
-async function getMsgHtml(ev) {
-    if (!activeChat) return '';
-    let content = ev.content, isLock = false;
-    if (ev.kind === 4) { content = await Crypto.decrypt(user.priv, activeChat.id, ev.content); isLock = true; }
-    const isMe = ev.pubkey === user.pub;
-    const p = data.profiles[ev.pubkey] || { name: ev.pubkey.slice(0, 6) };
-    const name = isMe ? 'Você' : (p.name || p.display_name || ev.pubkey.slice(0, 6));
-    const rep = ev.tags.find(t=>t[0]==='e');
-    const repHtml = rep ? `<div style="font-size:0.7rem;opacity:0.7;border-left:2px solid var(--cyan);padding-left:5px;margin-bottom:3px">Resposta</div>` : '';
-    return `
-        <div class="msg ${isMe ? 'me' : 'other'}">
-            <div class="msg-content" id="${ev.id}" oncontextmenu="ctx(event, '${ev.id}', '${ev.pubkey}', '${escape(content)}')">
-                ${repHtml}
-                ${!isMe ? `<div class="msg-name" onclick="showUserInfo('${ev.pubkey}')">${name}</div>` : ''}
-                ${format(content)}
-                <div class="msg-meta">${isLock ? '🔒' : ''} ${new Date(ev.created_at * 1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
-            </div>
-        </div>
-    `;
-}
-
-async function renderBuffer() {
+function renderBuffer() {
     const box = document.getElementById('msgs');
-    if (!box) return;
     const isAtBottom = box.scrollHeight - box.scrollTop <= box.clientHeight + 100;
-    const htmls = await Promise.all(chatBuffer.map(ev => getMsgHtml(ev)));
-    box.innerHTML = htmls.join('');
+    box.innerHTML = '';
+    chatBuffer.forEach(ev => appendMsg(ev));
     if (isAtBottom) box.scrollTop = box.scrollHeight;
 }
 
@@ -833,6 +810,27 @@ function renderHeader() {
 
 function closeChat() { activeChat = null; document.getElementById('app').classList.remove('view-chat'); }
 
+async function appendMsg(ev) {
+    let content = ev.content, isLock = false;
+    if (ev.kind === 4) { content = await Crypto.decrypt(user.priv, activeChat.id, ev.content); isLock = true; }
+    const isMe = ev.pubkey === user.pub;
+    const div = document.createElement('div');
+    div.className = `msg ${isMe ? 'me' : 'other'}`;
+    const p = data.profiles[ev.pubkey] || { name: ev.pubkey.slice(0, 6) };
+    const name = isMe ? 'Você' : (p.name || p.display_name || ev.pubkey.slice(0, 6));
+    const rep = ev.tags.find(t=>t[0]==='e');
+    const repHtml = rep ? `<div style="font-size:0.7rem;opacity:0.7;border-left:2px solid var(--cyan);padding-left:5px;margin-bottom:3px">Resposta</div>` : '';
+    div.innerHTML = `
+        <div class="msg-content" id="${ev.id}" oncontextmenu="ctx(event, '${ev.id}', '${ev.pubkey}', '${escape(content)}')">
+            ${repHtml}
+            ${!isMe ? `<div class="msg-name" onclick="showUserInfo('${ev.pubkey}')">${name}</div>` : ''}
+            ${format(content)}
+            <div class="msg-meta">${isLock ? '🔒' : ''} ${new Date(ev.created_at * 1000).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+    `;
+    document.getElementById('msgs').appendChild(div);
+}
+
 function format(txt) {
   txt = txt
     .replace(/&/g, '&amp;')
@@ -913,7 +911,7 @@ async function onclickSend() {
     const signed = await pub(ev);
     document.getElementById('msgInp').value = '';
     if(ev.kind === 4) signed.content = txt;
-    await addToBuffer(signed);
+    addToBuffer(signed);
     setTimeout(() => { const box = document.getElementById('msgs'); box.scrollTop = box.scrollHeight; }, 100);
 }
 
@@ -985,12 +983,7 @@ function showUserInfo(pk) {
 }
 
 async function toggleFriend() {
-    const isFriend = data.friends.has(selectedUser);
-    if (isFriend && !confirm('Remover amigo?')) return;
-
-    if (isFriend) data.friends.delete(selectedUser);
-    else data.friends.add(selectedUser);
-    
+    if (data.friends.has(selectedUser)) data.friends.delete(selectedUser); else data.friends.add(selectedUser);
     const tags = Array.from(data.friends).map(p => ['p', p]); await pub({ kind: 3, tags, content: '' });
     closeModal('userInfoModal'); updateListUI();
 }
@@ -1006,32 +999,16 @@ function ctx(e, id, pub, txt) {
     if (x + 180 > window.innerWidth) x = window.innerWidth - 190;
     if (y + 150 > window.innerHeight) y = window.innerHeight - 160;
     m.style.left = x + 'px'; m.style.top = y + 'px';
-
-    const isOwner = pub === user.pub, isAdm = activeChat?.host === user.pub, isFriend = data.friends.has(pub);
-    
-    const fOpt = document.getElementById('ctxFriend');
-    if (isOwner) fOpt.style.display = 'none';
-    else {
-        fOpt.style.display = 'block';
-        fOpt.innerText = isFriend ? '❌ Remover Amigo' : '👤 Adicionar Amigo';
-    }
-
+    const isOwner = pub === user.pub, isAdm = activeChat?.host === user.pub;
     document.getElementById('ctxBan').style.display = isAdm ? 'block' : 'none';
     document.getElementById('ctxDel').style.display = (isOwner || isAdm) ? 'block' : 'none';
-    
-    setTimeout(() => { document.addEventListener('click', function handler() {
-        m.style.display = 'none'; document.removeEventListener('click', handler);
-    }); }, 10);
-}
-function handleCtxFriend() {
-    selectedUser = ctxData.pub;
-    toggleFriend();
+    setTimeout(() => { document.addEventListener('click', function handler() { m.style.display = 'none'; document.removeEventListener('click', handler); }); }, 10);
 }
 function replyMsg() { replyId = ctxData.id; document.getElementById('replyBar').classList.remove('hidden'); document.getElementById('msgInp').focus(); }
 function cancelReply() { replyId=null; document.getElementById('replyBar').classList.add('hidden'); }
 function copyMsg() { navigator.clipboard.writeText(ctxData.txt); }
 function copyText(txt) { navigator.clipboard.writeText(txt); alert('Copiado!'); }
-async function deleteMsg() { if(!confirm('Apagar?')) return; await pub({ kind:5, tags:[['e', ctxData.id]], content:'' }); chatBuffer = chatBuffer.filter(m => m.id !== ctxData.id); await renderBuffer(); }
+async function deleteMsg() { if(!confirm('Apagar?')) return; await pub({ kind:5, tags:[['e', ctxData.id]], content:'' }); chatBuffer = chatBuffer.filter(m => m.id !== ctxData.id); renderBuffer(); }
 function openModal(id) { document.getElementById(id).classList.remove('hidden'); }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function chatInfo() { if(activeChat.type==='group') showGroupInfo(activeChat); else showUserInfo(activeChat.id); }
